@@ -83,10 +83,14 @@ test("the Demo inbox count is shown only once it is known", async ({ page }) => 
     });
   const badge = page.getByTestId("inbox-count");
 
-  // A new visitor has a known zero. A purchase moves it to 1 together with the confirmation.
+  // A new visitor's empty inbox shows no pill. A purchase brings a 1 together with the confirmation, and no 0 before it.
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /Demo inbox/ })).toBeVisible();
+  await expect(badge).toBeHidden();
   await buyCodes(page);
+  await expect(badge).toBeVisible();
   await expect(badge).toHaveText("1");
-  expect((await seen()).counts).toEqual(["0", "1"]);
+  expect((await seen()).counts).toEqual(["1"]);
 
   // After a full page load the count is unknown until the inbox has been read: no 0 on the way to 1.
   await page.reload();

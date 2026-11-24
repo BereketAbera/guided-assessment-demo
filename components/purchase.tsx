@@ -111,7 +111,7 @@ export function Purchase({ offers }: { offers: Offer[] }) {
               <Button
                 className="mt-6 w-full"
                 size={mine ? "md" : "lg"}
-                variant={bought ? "secondary" : "primary"}
+                variant={boughtPacks.includes(offer.id) ? "secondary" : "primary"}
                 onClick={() => buy(offer.id)}
                 disabled={busy !== null}
               >

@@ -40,7 +40,7 @@ export function DemoInbox() {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  // Not known until the inbox has been read once: the badge shows no number before then, never a wrong 0.
+  // Not known until the inbox has been read once: the badge shows no number before then, and none for an empty inbox.
   const [messages, setMessages] = useState<Message[] | null>(null);
   // Messages a purchase has just told us about, counted until the next read of the inbox includes them.
   const [arriving, setArriving] = useState(0);
@@ -118,12 +118,13 @@ export function DemoInbox() {
       >
         <Mail aria-hidden className="size-4" />
         Demo inbox
-        {/* The badge keeps its place while the count is unknown, so nothing moves when the number arrives. */}
+        {/* The badge keeps its place while the count is unknown or zero, so nothing moves when a number arrives.
+            An empty inbox shows no pill: a zero drawn as loudly as a real count reads as news. */}
         <span
           data-testid="inbox-count"
           className={cn(
             "inline-flex min-w-5 items-center justify-center rounded-full bg-pine px-1.5 text-xs leading-5 font-semibold text-white",
-            count === null && "invisible",
+            !count && "invisible",
           )}
           aria-label={count === null ? undefined : `${count} message${count === 1 ? "" : "s"}`}
         >

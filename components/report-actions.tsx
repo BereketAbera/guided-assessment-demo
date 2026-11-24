@@ -14,7 +14,8 @@ export function ReportToolbar() {
     setMail("sending");
     const result = await postJson("/api/report/email");
     setMail(result.ok ? "sent" : "failed");
-    if (result.ok) refreshInbox();
+    // The copy is one message: the count moves with the confirmation, as it does after a purchase.
+    if (result.ok) refreshInbox({ added: 1 });
   }
 
   return (
