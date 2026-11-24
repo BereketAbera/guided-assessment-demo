@@ -1,4 +1,3 @@
-import { Clock, ListOrdered, RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FlowShell } from "@/components/flow-shell";
@@ -26,29 +25,21 @@ export default async function StartPage() {
         this.
       </p>
 
-      <ul className="mt-7 space-y-3.5 text-[1.02rem]">
-        <li className="flex gap-3">
-          <Clock aria-hidden className="mt-1 size-5 shrink-0 text-pine" />
-          <span>
-            <strong>
-              About {assessment.minutesLow} to {assessment.minutesHigh} minutes.
-            </strong>{" "}
-            Longer if you like to think things through.
-          </span>
+      {/* Three things to know, as type: the bold lead-in carries each line, with a hairline between. */}
+      <ul className="mt-7 divide-y divide-rule border-y border-rule text-[1.02rem]">
+        <li className="py-3.5">
+          <strong>
+            About {assessment.minutesLow} to {assessment.minutesHigh} minutes.
+          </strong>{" "}
+          Longer if you like to think things through.
         </li>
-        <li className="flex gap-3">
-          <ListOrdered aria-hidden className="mt-1 size-5 shrink-0 text-pine" />
-          <span>
-            <strong>{partsWord} parts, one question at a time.</strong> Type, or tap the microphone on your keyboard
-            and speak. You can edit each answer until you continue.
-          </span>
+        <li className="py-3.5">
+          <strong>{partsWord} parts, one question at a time.</strong> Type, or tap the microphone on your keyboard and
+          speak. You can edit each answer until you continue.
         </li>
-        <li className="flex gap-3">
-          <RotateCcw aria-hidden className="mt-1 size-5 shrink-0 text-pine" />
-          <span>
-            <strong>You can stop and come back with the same code.</strong> Every answer is saved as you go, so a lost
-            signal or a flat battery costs you nothing.
-          </span>
+        <li className="py-3.5">
+          <strong>You can stop and come back with the same code.</strong> Every answer is saved as you go, so a lost
+          signal or a flat battery costs you nothing.
         </li>
       </ul>
 

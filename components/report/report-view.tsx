@@ -1,4 +1,3 @@
-import { FileText } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { longDate } from "@/lib/format";
 import type { Report } from "@/lib/report/types";
@@ -148,9 +147,9 @@ export function ReportView({ report, sample = false }: { report: Report; sample?
         <ul className="mt-4 grid gap-3 sm:grid-cols-3">
           {report.resources.map((r) => (
             <li key={r.title} className="rounded-lg border border-rule p-4">
-              <FileText aria-hidden className="size-5 text-pine" />
+              <p className="eyebrow">{r.kind}</p>
               <p className="mt-2 leading-snug font-semibold">{r.title}</p>
-              <p className="mt-1 text-sm text-stone">{r.kind} · PDF</p>
+              <p className="mt-1 text-sm text-stone">PDF</p>
             </li>
           ))}
         </ul>

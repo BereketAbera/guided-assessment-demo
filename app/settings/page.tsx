@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { formatPrice, salesPage, settings } from "@/lib/settings";
 
@@ -28,8 +29,14 @@ function Row({ label, value, where }: { label: string; value: React.ReactNode; w
       <td data-label="Value now" className="py-3 pr-4 align-top">
         {value}
       </td>
-      <td data-label="Key in the file" className="py-3 align-top font-mono text-[0.8rem] [overflow-wrap:anywhere] text-stone">
-        {where}
+      {/* On a wide screen a key breaks only between keys, never inside one; on a phone it may break anywhere. */}
+      <td data-label="Key in the file" className="py-3 align-top font-mono text-[0.8rem] text-stone max-sm:[overflow-wrap:anywhere]">
+        {where.split(", ").map((key, i) => (
+          <Fragment key={key}>
+            {i > 0 ? ", " : null}
+            <span className="sm:whitespace-nowrap">{key}</span>
+          </Fragment>
+        ))}
       </td>
     </tr>
   );

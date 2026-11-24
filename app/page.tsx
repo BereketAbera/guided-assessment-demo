@@ -1,4 +1,4 @@
-import { ArrowRight, Clock, Lock, Smartphone } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Purchase } from "@/components/purchase";
 import { ProfileFigure } from "@/components/report/profile-figure";
@@ -7,8 +7,6 @@ import { TryIt } from "@/components/try-it";
 import { buttonStyles } from "@/components/ui/button";
 import { sampleReport } from "@/lib/report/sample";
 import { formatPrice, salesPage, settings } from "@/lib/settings";
-
-const factIcons = [Clock, Lock, Smartphone];
 
 export default function HomePage() {
   const report = sampleReport();
@@ -32,17 +30,13 @@ export default function HomePage() {
                 {salesPage.haveCodeLabel}
               </Link>
             </div>
-            {/* Each fact keeps to one line; the row wraps between facts, never inside one. */}
-            <ul className="mt-9 flex flex-col gap-x-7 gap-y-2.5 text-[0.95rem] sm:flex-row sm:flex-wrap">
-              {salesPage.facts.map((fact, i) => {
-                const Icon = factIcons[i] ?? Clock;
-                return (
-                  <li key={fact} className="flex items-center gap-2">
-                    <Icon aria-hidden className="size-4 shrink-0 text-pine" />
-                    <span>{fact}</span>
-                  </li>
-                );
-              })}
+            {/* The three facts as plain type: a hairline above, and thin rules between them. Stacked on a phone. */}
+            <ul className="mt-9 max-w-xl divide-y divide-rule border-t border-rule text-[0.95rem] leading-snug sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              {salesPage.facts.map((fact) => (
+                <li key={fact} className="py-2.5 text-balance sm:px-5 sm:pt-4 sm:pb-0 sm:first:pl-0 sm:last:pr-0">
+                  {fact}
+                </li>
+              ))}
             </ul>
           </div>
 
