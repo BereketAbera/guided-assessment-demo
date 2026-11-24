@@ -132,9 +132,10 @@ export function CodeForm() {
       </div>
       {lost ? (
         <p id="lost-code" className="rounded-lg bg-sand p-4 text-sm">
-          Search your email for &ldquo;Your access code&rdquo;. In the real product this link sends your codes again to
-          the address you bought with. In this sample, your codes are in the <strong>Demo inbox</strong> at the top of
-          the page.
+          Search your email for &ldquo;Your access code&rdquo;. The code lives only in that email: our records keep a
+          one-way hash of it, which cannot be turned back into the code. So in the real product this link asks for the
+          address you bought with and sends a new code there; the new code opens the same session, and the old one
+          stops working. In this sample, your codes are in the <strong>Demo inbox</strong> at the top of the page.
         </p>
       ) : null}
     </form>

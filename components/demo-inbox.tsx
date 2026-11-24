@@ -3,6 +3,8 @@
 import { Mail } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { postJson } from "@/lib/utils";
+import { CopyButton } from "./copy-button";
 import { Button } from "./ui/button";
 import { Sheet } from "./ui/sheet";
 
@@ -14,6 +16,7 @@ type Message = {
   body: string;
   codes: { code: string; label: string }[];
   sessionId: string | null;
+  openWith?: string;
 };
 
 export const INBOX_EVENT = "ga:inbox";
@@ -32,6 +35,7 @@ export function DemoInbox() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [opening, setOpening] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -75,12 +79,22 @@ export function DemoInbox() {
     window.dispatchEvent(new Event("ga:prefill"));
   }
 
+  /** What the link in the real email does: the code opens the report. */
+  async function openReport(message: Message) {
+    if (!message.openWith) return;
+    setOpening(message.id);
+    const result = await postJson<{ next: string }>("/api/code", { code: message.openWith });
+    setOpening(null);
+    setOpen(false);
+    router.push(result.ok ? result.data.next : "/code");
+  }
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 font-semibold text-ink hover:bg-paper"
+        className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 font-semibold text-ink hover:bg-paper pointer-coarse:min-h-11"
       >
         <Mail aria-hidden className="size-4" />
         Demo inbox
@@ -126,30 +140,35 @@ export function DemoInbox() {
               {m.codes.length > 0 ? (
                 <ul className="mt-3 space-y-2">
                   {m.codes.map((c) => (
-                    <li
-                      key={c.code}
-                      data-testid="inbox-code-row"
-                      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-xs text-stone">{c.label}</p>
-                        <p className="font-mono text-lg font-semibold tracking-[0.12em]" data-testid="inbox-code">
-                          {c.code}
-                        </p>
+                    // Label, then the code, then its buttons: the same order in every row at every width.
+                    <li key={c.code} data-testid="inbox-code-row" className="rounded-md bg-sand px-3 py-2.5">
+                      <p className="text-xs text-stone">{c.label}</p>
+                      <p className="font-mono text-lg font-semibold tracking-[0.12em]" data-testid="inbox-code">
+                        {c.code}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => enterCode(c.code)}>
+                          Use this code
+                        </Button>
+                        <CopyButton value={c.code} />
                       </div>
-                      <Button variant="secondary" size="sm" onClick={() => enterCode(c.code)}>
-                        Use this code
-                      </Button>
                     </li>
                   ))}
                 </ul>
               ) : null}
               {m.kind === "report_ready" || m.kind === "report_copy" ? (
-                <p className="mt-3 text-sm">
-                  <span className="rounded bg-sand px-2 py-1 text-xs font-semibold text-stone">
+                <div className="mt-3">
+                  <p className="inline-block rounded bg-sand px-2 py-1 text-xs leading-snug font-semibold text-stone">
                     Attached in the real product: report PDF, resource PDFs
-                  </span>
-                </p>
+                  </p>
+                  {m.openWith ? (
+                    <div className="mt-3">
+                      <Button variant="secondary" size="sm" onClick={() => openReport(m)} disabled={opening !== null}>
+                        {opening === m.id ? "Opening…" : "Open your report"}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
             </li>
           ))}

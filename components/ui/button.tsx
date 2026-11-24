@@ -15,7 +15,8 @@ export const buttonStyles = cva(
       size: {
         md: "min-h-11 px-5 text-[0.95rem]",
         lg: "min-h-13 px-6 text-base",
-        sm: "min-h-9 px-3 text-sm",
+        // 36px with a mouse; a full 44px target where the pointer is a finger.
+        sm: "min-h-9 px-3 text-sm pointer-coarse:min-h-11",
         bare: "min-h-11 px-1 text-[0.95rem]",
       },
     },
