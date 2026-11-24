@@ -5,7 +5,7 @@ import { Wordmark } from "./brand-mark";
 const ownerLinks = [
   { href: "/how-it-works", label: "How it works" },
   { href: "/admin", label: "Owner admin" },
-  { href: "/settings", label: "Settings file" },
+  { href: "/settings", label: "Settings files" },
 ];
 
 /** Customer pages get a quiet header; the pages about the build get their own navigation. */

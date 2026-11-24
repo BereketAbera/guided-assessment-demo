@@ -11,8 +11,12 @@ import { isAdmin, repo, sandboxRef } from "@/lib/server/context";
 import { adminRow } from "@/lib/server/views";
 import { settings } from "@/lib/settings";
 
-export const metadata: Metadata = { title: "Session" };
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  return { title: /^S-\d{1,8}$/.test(id) ? `Session ${id}` : "Session" };
+}
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -44,7 +48,8 @@ export default async function AdminSessionPage({ params }: { params: Promise<{ i
           <h1 className="font-serif text-4xl leading-tight font-semibold tracking-tight">Session {row.id}</h1>
           <StatusBadge status={row.status} label={row.statusLabel} />
         </div>
-        {row.note ? <p className="mt-1 text-stone">{row.note}</p> : null}
+        {/* An example row's note describes how it was made; once the session is reopened it no longer holds. */}
+        {row.note && !(row.source === "seed" && row.reopenedAt) ? <p className="mt-1 text-stone">{row.note}</p> : null}
 
         {row.status === "expired" ? (
           <div className="mt-6 rounded-xl border border-clay bg-white p-5">
@@ -54,7 +59,7 @@ export default async function AdminSessionPage({ params }: { params: Promise<{ i
               code takes them back to the question they were on.
             </p>
             <div className="mt-4">
-              <ReopenSession id={row.id} />
+              <ReopenSession id={row.id} days={settings.assessment.reopenDays} />
             </div>
           </div>
         ) : null}
@@ -75,8 +80,21 @@ export default async function AdminSessionPage({ params }: { params: Promise<{ i
             <Fact label="Created">{when(row.createdAt)}</Fact>
             <Fact label="Started">{when(row.startedAt)}</Fact>
             <Fact label="Last activity">{when(row.lastActivityAt)}</Fact>
-            <Fact label={row.status === "expired" ? "Expired" : "Time limit"}>{row.expiresAt ? when(row.expiresAt) : "Starts with the first answer"}</Fact>
-            <Fact label="Report ready">{row.status === "report_ready" ? when(row.reportReadyAt) : "Not yet"}</Fact>
+            {row.status === "deleted" ? (
+              <>
+                <Fact label="Answers deleted">{when(row.deletedAt)}</Fact>
+                <Fact label="Report">Deleted with the answers</Fact>
+              </>
+            ) : (
+              <>
+                <Fact label={row.status === "expired" ? "Expired" : "Time limit"}>
+                  {row.expiresAt ? when(row.expiresAt) : "Starts when the assessment is started"}
+                </Fact>
+                <Fact label="Report ready">
+                  {row.status === "report_ready" ? when(row.reportReadyAt) : row.status === "preparing" ? "Being prepared" : "Not yet"}
+                </Fact>
+              </>
+            )}
           </dl>
         </section>
 

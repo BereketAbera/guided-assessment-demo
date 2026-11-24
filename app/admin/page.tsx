@@ -34,8 +34,8 @@ export default async function AdminPage() {
           <p className="eyebrow">Owner admin</p>
           <h1 className="mt-3 font-serif text-4xl leading-tight font-semibold tracking-tight">Sign in</h1>
           <p className="mt-3 text-lg">
-            The admin area is where the owner sees codes and sessions, creates a code by hand and reopens a session that
-            ran out of time.
+            The admin area is where the owner sees codes, sessions and the AI cost of each, creates a code by hand and
+            reopens a session that ran out of time.
           </p>
           <div className="mt-7 rounded-xl border border-rule bg-white p-6">
             <p className="font-semibold">Demo owner</p>
@@ -59,6 +59,7 @@ export default async function AdminPage() {
     .sort((a, b) => (b.lastActivityAt ?? b.createdAt) - (a.lastActivityAt ?? a.createdAt));
   const audit = doc?.audit ?? [];
   const spent = rows.reduce((sum, r) => sum + r.cost, 0);
+  const zone = settings.assessment.timeZone.replace(/_/g, " ");
 
   return (
     <>
@@ -95,7 +96,7 @@ export default async function AdminPage() {
           </div>
         </dl>
 
-        <p className="mt-5 flex max-w-4xl items-start gap-2.5 rounded-lg bg-sand p-4 text-[0.95rem]">
+        <p className="mt-5 flex items-start gap-2.5 rounded-lg bg-sand p-4 text-[0.95rem]">
           <ShieldCheck aria-hidden className="mt-0.5 size-5 shrink-0 text-pine" />
           <span>
             This table is built from each session&apos;s status, dates and token counts only. No answer is read to draw
@@ -107,9 +108,10 @@ export default async function AdminPage() {
           <h2 id="sessions-heading" className="sr-only">
             Sessions
           </h2>
-          <p className="mb-2 text-sm text-stone md:hidden">Swipe the table sideways for last activity, tokens and cost.</p>
+          {/* A phone gets one card per session; a tablet gets the table, which is wider than its screen. */}
+          <p className="mb-2 hidden text-sm text-stone sm:block lg:hidden">Swipe the table sideways for tokens and cost.</p>
           <div className="overflow-x-auto rounded-xl border border-rule bg-white" tabIndex={0} role="region" aria-label="Sessions table">
-            <table className="w-full min-w-[56rem] border-collapse text-left text-[0.9rem]">
+            <table className="stack-table stack-pairs w-full border-collapse text-left text-[0.9rem] sm:min-w-[56rem]">
               <thead>
                 <tr className="border-b border-rule text-xs tracking-wide text-stone uppercase">
                   <th scope="col" className="px-4 py-3 font-semibold">Session</th>
@@ -133,11 +135,13 @@ export default async function AdminPage() {
                         {r.note ? ` · ${r.note}` : ""}
                       </span>
                     </th>
-                    <td className="px-4 py-3 align-top font-mono tracking-wider whitespace-nowrap">{r.codeHint}</td>
-                    <td className="px-4 py-3 align-top">
+                    <td data-label="Code" className="px-4 py-3 align-top font-mono tracking-wider whitespace-nowrap max-sm:order-3">
+                      {r.codeHint}
+                    </td>
+                    <td data-label="Status" className="px-4 py-3 align-top max-sm:order-1">
                       <StatusBadge status={r.status} label={r.statusLabel} />
                     </td>
-                    <td className="px-4 py-3 align-top whitespace-nowrap">
+                    <td data-label="Last activity" className="px-4 py-3 align-top whitespace-nowrap max-sm:order-4">
                       {r.lastActivityAt ? (
                         <>
                           {ago(r.lastActivityAt, now)}
@@ -147,9 +151,15 @@ export default async function AdminPage() {
                         <span className="text-stone">None yet</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right align-top tabular-nums">{number(r.inputTokens)}</td>
-                    <td className="px-4 py-3 text-right align-top tabular-nums">{number(r.outputTokens)}</td>
-                    <td className="px-4 py-3 text-right align-top font-semibold tabular-nums">{formatCost(r.cost)}</td>
+                    <td data-label="Tokens in" className="px-4 py-3 text-right align-top tabular-nums max-sm:order-5">
+                      {number(r.inputTokens)}
+                    </td>
+                    <td data-label="Tokens out" className="px-4 py-3 text-right align-top tabular-nums max-sm:order-6">
+                      {number(r.outputTokens)}
+                    </td>
+                    <td data-label="Est. cost" className="px-4 py-3 text-right align-top font-semibold tabular-nums max-sm:order-2">
+                      {formatCost(r.cost)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -159,11 +169,45 @@ export default async function AdminPage() {
             Cost is an estimate: tokens in and out multiplied by the prices in the settings file. In this sample, token
             counts are estimated from text length; the real product adds up the usage figures returned with every
             model response. The rows marked Example are invented and carry the counts of a full-length conversation; a
-            session you run here is much shorter.
+            session you run here is much shorter. The example counts are before prompt caching, which lowers the input
+            cost, and do not include the model&apos;s thinking tokens, which are billed as output. The real figure
+            comes from a test run with your prompt. Times are shown in {zone}, set in the settings file.
           </p>
         </section>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_1.25fr]">
+        <section aria-labelledby="later-heading" className="mt-8 rounded-xl border border-dashed border-line p-5 sm:p-6">
+          <h2 id="later-heading" className="font-semibold">
+            Not in this sample, in the real build
+          </h2>
+          <p className="mt-1 max-w-4xl text-sm text-stone">
+            The brief&apos;s admin list has ten items. This page shows five: codes, sessions, cost per session, creating
+            a code and reopening a session. The other five:
+          </p>
+          <dl className="mt-4 grid gap-x-8 gap-y-3 text-[0.93rem] md:grid-cols-2">
+            <div>
+              <dt className="font-semibold">Reports</dt>
+              <dd>Opened by the owner through the same logged step as a transcript, reason first.</dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Feedback</dt>
+              <dd>Customer and beta feedback, listed against the session it came from.</dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Refunds</dt>
+              <dd>A Refund button on the session: it calls the payment provider and retires the code.</dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Prices</dt>
+              <dd>Edited here, and used by checkout from the next sale on.</dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Beta mode</dt>
+              <dd>Invited testers, a debrief form after the report, and CSV exports.</dd>
+            </div>
+          </dl>
+        </section>
+
+        <div className="mt-10 grid items-start gap-8 lg:grid-cols-[1fr_1.25fr]">
           <CreateCode />
           <section aria-labelledby="log-heading" className="rounded-xl border border-rule bg-white p-5">
             <h2 id="log-heading" className="font-semibold">
@@ -172,7 +216,7 @@ export default async function AdminPage() {
             <p className="mt-1 text-sm text-stone">Who did what, newest first. Opening a transcript always appears here.</p>
             <ol className="mt-4 divide-y divide-rule text-[0.9rem]" data-testid="access-log">
               {audit.map((entry, i) => (
-                <li key={`${entry.at}-${i}`} className="grid gap-x-4 gap-y-0.5 py-2.5 sm:grid-cols-[9.5rem_1fr]">
+                <li key={`${entry.at}-${i}`} className="grid gap-x-4 gap-y-0.5 py-2.5 sm:grid-cols-[10.5rem_1fr]">
                   <span className="text-xs text-stone sm:pt-0.5">{shortDateTime(entry.at)}</span>
                   <span>
                     <span className="font-semibold">

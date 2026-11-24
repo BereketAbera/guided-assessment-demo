@@ -7,7 +7,7 @@ const links = [
   { href: "/sample-report", label: "Sample report" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/admin", label: "Owner admin" },
-  { href: "/settings", label: "Settings file" },
+  { href: "/settings", label: "Settings files" },
 ];
 
 export function SiteFooter() {

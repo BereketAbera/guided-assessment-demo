@@ -3,8 +3,8 @@
 import { Eye, KeyRound, LogIn, LogOut, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { settings } from "@/lib/settings";
 import { postJson } from "@/lib/utils";
+import { CopyButton } from "../copy-button";
 import { Button } from "../ui/button";
 
 export function OwnerSignIn() {
@@ -37,11 +37,10 @@ export function OwnerSignIn() {
 }
 
 export function OwnerSignOut() {
-  const router = useRouter();
   async function signOut() {
     await postJson("/api/admin/logout");
-    router.push("/admin");
-    router.refresh();
+    // A full page load that replaces this page, so the Back button cannot show the list again.
+    window.location.replace("/admin");
   }
   return (
     <Button variant="secondary" size="sm" onClick={signOut}>
@@ -90,7 +89,7 @@ export function CreateCode() {
           onChange={(e) => setNote(e.target.value)}
           maxLength={80}
           placeholder="Who or what it is for"
-          className="h-11 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-[0.95rem] placeholder:text-stone focus-visible:border-pine focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-pine"
+          className="h-11 min-w-0 flex-1 basis-48 rounded-md border border-line bg-paper px-3 text-base placeholder:text-stone focus-visible:border-pine focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-pine"
         />
         <Button type="submit" disabled={busy}>
           {busy ? "Creating…" : "Create code"}
@@ -108,7 +107,10 @@ export function CreateCode() {
               New code for session <strong>{made.sessionId}</strong>. Copy it now: it is shown once, and only a one-way
               hash is stored.
             </p>
-            <p className="mt-1 font-mono text-2xl font-semibold tracking-[0.14em]">{made.code}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p className="font-mono text-2xl font-semibold tracking-[0.14em]">{made.code}</p>
+              <CopyButton value={made.code} />
+            </div>
           </div>
         ) : null}
       </div>
@@ -116,7 +118,7 @@ export function CreateCode() {
   );
 }
 
-export function ReopenSession({ id }: { id: string }) {
+export function ReopenSession({ id, days }: { id: string; days: number }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +136,7 @@ export function ReopenSession({ id }: { id: string }) {
     <div>
       <Button onClick={reopen} disabled={busy}>
         <RotateCcw aria-hidden className="size-4" />
-        {busy ? "Reopening…" : `Reopen for ${settings.assessment.reopenDays} days`}
+        {busy ? "Reopening…" : `Reopen for ${days} days`}
       </Button>
       {error ? (
         <p role="alert" className="mt-2 text-sm font-medium text-clay">
@@ -153,7 +155,7 @@ type Transcript = {
 
 const reasons = ["Customer asked for help with their report", "Checking a problem the customer reported", "Quality review during beta"];
 
-/** Closed by default. Opening needs a reason, and the reason is written to the access log before anything is shown. */
+/** Closed by default. The server refuses to open it without a reason, and writes the reason to the access log before anything is shown. */
 export function TranscriptPanel({ id, hasAnswers }: { id: string; hasAnswers: boolean }) {
   const router = useRouter();
   const [reason, setReason] = useState(reasons[0]!);
@@ -209,12 +211,13 @@ export function TranscriptPanel({ id, hasAnswers }: { id: string; hasAnswers: bo
       <label htmlFor="reason" className="mt-4 block text-sm font-semibold">
         Reason for opening
       </label>
+      {/* On a phone the reason takes the full width, so it can be read, and the button sits under it. */}
       <div className="mt-1.5 flex flex-wrap gap-2">
         <select
           id="reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="h-11 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-[0.95rem] focus-visible:border-pine focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-pine"
+          className="h-11 w-full min-w-0 rounded-md border border-line bg-paper px-3 text-base focus-visible:border-pine focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-pine sm:w-auto sm:flex-1"
         >
           {reasons.map((r) => (
             <option key={r}>{r}</option>
