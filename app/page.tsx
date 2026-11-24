@@ -30,10 +30,10 @@ export default function HomePage() {
                 {salesPage.haveCodeLabel}
               </Link>
             </div>
-            {/* The three facts as plain type: a hairline above, and thin rules between them. Stacked on a phone. */}
-            <ul className="mt-9 max-w-xl divide-y divide-rule border-t border-rule text-[0.95rem] leading-snug sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {/* The three facts as plain type, one to a line, with a hairline above each. */}
+            <ul className="mt-9 max-w-xl divide-y divide-rule border-t border-rule text-[0.95rem] leading-snug">
               {salesPage.facts.map((fact) => (
-                <li key={fact} className="py-2.5 text-balance sm:px-5 sm:pt-4 sm:pb-0 sm:first:pl-0 sm:last:pr-0">
+                <li key={fact} className="py-2.5">
                   {fact}
                 </li>
               ))}

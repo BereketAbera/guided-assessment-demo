@@ -253,15 +253,15 @@ export default function HowItWorksPage() {
               seconds, which stage the job has reached.
             </p>
             {/* The same idea as a picture, beside the list on a wide screen and above it on a phone. */}
-            <div className="grid max-w-3xl items-center gap-x-10 gap-y-5 md:grid-cols-[minmax(0,24rem)_1fr]">
-              <figure className="border-y border-rule py-5">
+            <div className="grid max-w-3xl items-start gap-x-10 gap-y-5 border-y border-rule py-5 md:grid-cols-[minmax(0,24rem)_1fr]">
+              <figure>
                 <ReportJobDiagram className="block h-auto w-full" />
                 <figcaption className="mt-4 text-sm text-stone">
                   The job lives on the server. The page only asks how far it has got, so a phone that drops out loses
                   nothing.
                 </figcaption>
               </figure>
-              <ul className="list-disc space-y-1.5 pl-5">
+              <ul className="list-disc space-y-1.5 pl-5 md:pt-[3.8rem]">
                 <li>Refresh during the wait, and the same stage comes back.</li>
                 <li>Close the page, and nothing is lost: the report never depended on it. The code opens the report.</li>
                 <li>The stages are named, with a time estimate, so the page never looks frozen.</li>
@@ -483,9 +483,9 @@ export default function HowItWorksPage() {
               Every service runs in an account opened in the owner&apos;s name. The developer is added as a
               collaborator for the build and removed at handover.
             </p>
-            <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <dl className="grid max-w-3xl gap-x-8 gap-y-4 sm:grid-cols-2">
               {owned.map(([name, what]) => (
-                <div key={name} className="border-l-2 border-rule pl-4">
+                <div key={name} className="border-t border-rule pt-3">
                   <dt className="font-semibold">{name}</dt>
                   <dd className="text-[0.95rem]">{what}</dd>
                 </div>
