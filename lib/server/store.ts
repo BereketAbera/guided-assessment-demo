@@ -69,7 +69,8 @@ function blobStore(): DocStore {
     async get(key) {
       const found = await get(key, { access: "private", useCache: false });
       if (!found || found.statusCode !== 200) return null;
-      return { body: await new Response(found.stream).text(), etag: found.blob.etag };
+      // A compressed response carries a weak validator (W/"…"); conditional writes compare the strong form.
+      return { body: await new Response(found.stream).text(), etag: found.blob.etag.replace(/^W\//, "") };
     },
     async put(key, body, ifMatch) {
       try {
