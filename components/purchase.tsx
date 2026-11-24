@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { postJson } from "@/lib/utils";
+import { cn, postJson } from "@/lib/utils";
 import { CopyButton } from "./copy-button";
 import { refreshInbox } from "./demo-inbox";
 import { Button } from "./ui/button";
@@ -16,6 +16,8 @@ export function Purchase({ offers }: { offers: Offer[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [bought, setBought] = useState<Bought | null>(null);
+  // Which packs this visitor has bought on this page, so "another" is only said where it is true.
+  const [boughtPacks, setBoughtPacks] = useState<Offer["id"][]>([]);
   const [error, setError] = useState<string | null>(null);
   const result = useRef<HTMLDivElement>(null);
 
@@ -38,7 +40,9 @@ export function Purchase({ offers }: { offers: Offer[] }) {
       return;
     }
     setBought({ pack, codes: response.data.codes });
-    refreshInbox();
+    setBoughtPacks((packs) => (packs.includes(pack) ? packs : [...packs, pack]));
+    // One purchase is one message: the inbox count moves with the confirmation, then checks with the server.
+    refreshInbox({ added: 1 });
   }
 
   function enter(code: string) {
@@ -52,7 +56,9 @@ export function Purchase({ offers }: { offers: Offer[] }) {
 
   return (
     <div>
-      <div className="grid gap-5 md:grid-cols-2">
+      {/* Before a purchase the two cards match in height. Afterwards each keeps its own, so the card
+          that was not used does not stretch to the height of the one now holding the codes. */}
+      <div className={cn("grid gap-5 md:grid-cols-2", bought && "md:items-start")}>
         {offers.map((offer) => {
           const mine = bought?.pack === offer.id ? bought : null;
           return (
@@ -109,7 +115,9 @@ export function Purchase({ offers }: { offers: Offer[] }) {
                 onClick={() => buy(offer.id)}
                 disabled={busy !== null}
               >
-                {busy === offer.id ? "Simulating payment…" : `Buy ${bought ? "another " : ""}${offer.name.toLowerCase()}`}
+                {busy === offer.id
+                  ? "Simulating payment…"
+                  : `Buy ${boughtPacks.includes(offer.id) ? "another " : ""}${offer.name.toLowerCase()}`}
               </Button>
               <p className="mt-2 text-center text-xs text-stone">Simulated. No card is asked for and nothing is charged.</p>
             </div>

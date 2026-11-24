@@ -11,3 +11,5 @@ next-env.d.ts
 .DS_Store
 .data
 .env*.local
+design/out
+__pycache__
