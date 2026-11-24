@@ -62,7 +62,7 @@ and uses a fixed development key, so nothing leaves the machine and a restart cl
   of the code; a lost code is replaced by a new one sent to the purchase email.
 - **Every answer is one conditional write.** The server reads the document, applies the state machine, and
   writes it back only if nobody else wrote in between; otherwise it retries on the newer document. A repeated
-  send of the same answer is recognised and ignored.
+  send of the same answer is recognized and ignored.
 - **The answer being typed stays on the device** (`localStorage`) until it is sent, so a reload or a dropped
   connection does not lose it. It is not shared between devices.
 - **The report job is a start time on the server.** Its stage is worked out from that time, so a refresh, a
@@ -91,7 +91,7 @@ pnpm lint
 pnpm typecheck
 pnpm test           # unit: code format, state machine, staged job, scripted guide, report builder, sealing, cookies, store, deletion
 pnpm build
-pnpm test:e2e       # Playwright at 390x844 and 1440x900, with an accessibility check on every page
+pnpm test:e2e       # Playwright at 390x844 and 1440x900, with an accessibility check on every page (E2E_PORT moves it off 3601)
 BASE_URL=https://… pnpm test:live     # two-device resume, the job, deletion and the admin on a deployment
 BASE_URL=https://… SCREENS_DIR=… pnpm screens
 ```
@@ -101,6 +101,11 @@ words, resume after a reload and on a second browser (with a bought code and wit
 button after leaving and after deleting, a refresh and a closed page during "Preparing your results", "Delete
 my answers", an expired code reopened by the owner, an admin list that shows no transcript until one is opened
 with a reason, a second device that cannot act as the owner, and that no page scrolls sideways on a phone.
+
+## Design
+
+The reasons behind the look, and how to rebuild the icon, the link preview and the diagram on
+`/how-it-works#job` from the scripts in `design/`, are in [DESIGN-NOTES.md](DESIGN-NOTES.md).
 
 ## Not in this sample
 
