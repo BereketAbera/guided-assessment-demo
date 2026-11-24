@@ -19,12 +19,31 @@ function Dots({ score }: { score: number }) {
 }
 
 /**
+ * Text for a CSS string. Every character that is not a plain letter, digit or
+ * space is written as a numeric escape, so nothing in a first name can end the
+ * string or the style element it sits in.
+ */
+function cssText(text: string): string {
+  return Array.from(text)
+    .map((ch) => (/[A-Za-z0-9 ]/.test(ch) ? ch : `\\${ch.codePointAt(0)!.toString(16)} `))
+    .join("");
+}
+
+/** The running footer of the printed report: whose it is on the left, the page number on the right. */
+function printFooter(report: Report): string {
+  const owner = cssText(`${settings.assessment.brand} · ${report.title} · ${report.firstName}`);
+  const box = "font: 8pt ui-sans-serif, system-ui, sans-serif; color: #5b6470;";
+  return `@page { @bottom-left { content: "${owner}"; ${box} } @bottom-right { content: counter(page) " / " counter(pages); ${box} } }`;
+}
+
+/**
  * The one report template. The on-screen report, the PDF (this page printed)
  * and the sample report all render through it, from the same labeled fields.
  */
 export function ReportView({ report, sample = false }: { report: Report; sample?: boolean }) {
   return (
     <article className="print-flat mx-auto w-full max-w-3xl rounded-xl border border-rule bg-white px-6 py-10 shadow-sm sm:px-12 sm:py-14">
+      <style dangerouslySetInnerHTML={{ __html: printFooter(report) }} />
       <header className="avoid-break border-b border-rule pb-8">
         <div className="flex items-center justify-between gap-4">
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-stone">
@@ -55,11 +74,12 @@ export function ReportView({ report, sample = false }: { report: Report; sample?
         </blockquote>
       </section>
 
-      <section aria-labelledby="profile" className="avoid-break rounded-xl bg-sand px-5 py-7 sm:px-8">
-        <h2 id="profile" className="eyebrow">
+      {/* The card may run over a page in print; its pieces (the figure with the name, each trait row) stay whole. */}
+      <section aria-labelledby="profile" className="print-clone rounded-xl bg-sand px-5 py-7 sm:px-8">
+        <h2 id="profile" className="eyebrow keep-with-next">
           Your profile
         </h2>
-        <div className="mt-3 grid items-center gap-6 md:grid-cols-[minmax(0,15rem)_1fr]">
+        <div className="avoid-break mt-3 grid items-center gap-6 md:grid-cols-[minmax(0,17rem)_1fr]">
           <ProfileFigure traits={report.profile.traits} className="mx-auto w-full max-w-[17rem]" />
           <div>
             <p className="font-serif text-3xl leading-tight font-semibold">{report.profile.name}</p>
@@ -68,7 +88,7 @@ export function ReportView({ report, sample = false }: { report: Report; sample?
         </div>
         <dl className="mt-6 divide-y divide-[#d9cfbe] border-t border-[#d9cfbe]">
           {report.profile.traits.map((t) => (
-            <div key={t.partId} className="grid gap-x-4 gap-y-1 py-3 sm:grid-cols-[13.5rem_1fr] sm:items-baseline">
+            <div key={t.partId} className="avoid-break grid gap-x-4 gap-y-1 py-3 sm:grid-cols-[13.5rem_1fr] sm:items-baseline">
               <dt className="flex items-center justify-between gap-3 font-semibold sm:block">
                 <span className="block">{t.name}</span>
                 <span className="sm:mt-1 sm:block">
@@ -84,7 +104,7 @@ export function ReportView({ report, sample = false }: { report: Report; sample?
       <div className="py-4">
         {report.sections.map((s) => (
           <section key={s.heading} className="avoid-break border-b border-rule py-8 last:border-b-0">
-            <h2 className="font-serif text-2xl font-semibold">{s.heading}</h2>
+            <h2 className="keep-with-next font-serif text-2xl font-semibold">{s.heading}</h2>
             {s.paragraphs.map((p) => (
               <p key={p} className="prose-measure mt-3 text-[1.02rem] leading-relaxed">
                 {p}
@@ -103,7 +123,7 @@ export function ReportView({ report, sample = false }: { report: Report; sample?
       </div>
 
       <section aria-labelledby="next-steps" className="avoid-break border-t-2 border-ink pt-8">
-        <h2 id="next-steps" className="font-serif text-2xl font-semibold">
+        <h2 id="next-steps" className="keep-with-next font-serif text-2xl font-semibold">
           What to do next
         </h2>
         <ol className="mt-5 space-y-5">
@@ -122,7 +142,7 @@ export function ReportView({ report, sample = false }: { report: Report; sample?
       </section>
 
       <section aria-labelledby="resources" className="avoid-break mt-10">
-        <h2 id="resources" className="font-serif text-2xl font-semibold">
+        <h2 id="resources" className="keep-with-next font-serif text-2xl font-semibold">
           Resources
         </h2>
         <ul className="mt-4 grid gap-3 sm:grid-cols-3">

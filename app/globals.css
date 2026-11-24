@@ -131,9 +131,11 @@
   }
 }
 
-/* The PDF is the report page, printed: same template, no screen chrome. */
+/*
+ * The PDF is the report page, printed: same template, no screen chrome. No
+ * paper size is set, so the browser uses the reader's own (Letter or A4).
+ */
 @page {
-  size: A4;
   margin: 16mm 16mm 18mm;
 }
 @media print {
@@ -155,8 +157,72 @@
   .avoid-break {
     break-inside: avoid;
   }
+  /* A heading is never the last thing on a page. */
+  .keep-with-next {
+    break-after: avoid;
+  }
+  /* A card that runs over a page keeps its rounded corners and padding on both halves. */
+  .print-clone {
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+}
+
+/*
+ * Tables that become a list of cards on a phone, so no column is off-screen
+ * and nothing has to be swiped. Each cell carries its column name in
+ * data-label; the header row stays available to screen readers.
+ */
+@media (max-width: 639px) {
+  .stack-table,
+  .stack-table tbody,
+  .stack-table tr,
+  .stack-table th,
+  .stack-table td {
+    display: block;
+  }
+  .stack-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .stack-table tr {
+    padding: 1rem;
+  }
+  .stack-table th,
+  .stack-table td {
+    padding: 0;
+    width: auto;
+    text-align: left;
+  }
+  .stack-table td {
+    margin-top: 0.625rem;
+  }
+  .stack-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.125rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-stone);
+  }
+  /* Short values sit two to a line, under a full-width first cell. */
+  .stack-pairs tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 1rem;
+  }
+  .stack-pairs th {
+    grid-column: 1 / -1;
   }
 }
