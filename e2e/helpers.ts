@@ -1,0 +1,70 @@
+import AxeBuilder from "@axe-core/playwright";
+import { expect, type Page } from "@playwright/test";
+
+/** Simulated purchase on the sales page. Returns the code or codes shown on screen. */
+export async function buyCodes(page: Page, pack: "single" | "two-pack" = "single"): Promise<string[]> {
+  await page.goto("/#buy");
+  await page.getByRole("button", { name: `Buy ${pack}` }).click();
+  const issued = page.getByTestId("issued-code");
+  await expect(issued.first()).toBeVisible();
+  return issued.allTextContents();
+}
+
+export async function enterCode(page: Page, code: string): Promise<void> {
+  await page.goto("/code");
+  await page.getByLabel("Access code").fill(code);
+  await page.getByRole("button", { name: "Continue" }).click();
+}
+
+export async function begin(page: Page, firstName: string): Promise<void> {
+  await expect(page).toHaveURL(/\/start$/);
+  await page.getByLabel("Your first name").fill(firstName);
+  await page.getByRole("button", { name: "Begin" }).click();
+  await expect(page).toHaveURL(/\/session$/);
+}
+
+export function question(page: Page) {
+  return page.locator("#question");
+}
+
+/** Answers the question on screen and waits for the next one (or for the waiting screen). */
+export async function answer(page: Page, text?: string): Promise<void> {
+  const before = await question(page).textContent();
+  if (text === undefined) await page.getByRole("button", { name: /Sample shortcut/ }).click();
+  else await page.getByLabel("Your answer").fill(text);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect
+    .poll(async () => (page.url().endsWith("/session") ? await question(page).textContent() : "left"), { timeout: 15_000 })
+    .not.toBe(before);
+}
+
+/** Answers with the sample shortcut until the conversation hands over to the waiting screen. */
+export async function answerToTheEnd(page: Page): Promise<void> {
+  for (let i = 0; i < 25 && page.url().endsWith("/session"); i++) await answer(page);
+  await expect(page).toHaveURL(/\/preparing$/);
+}
+
+export async function expectAccessible(page: Page): Promise<void> {
+  // After a client-side navigation the page title arrives a moment after the content.
+  await expect(page).toHaveTitle(/\S/);
+  // Let entrance animations finish first, so text is checked at its resting colour.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(
+    results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`),
+    `accessibility violations on ${page.url()}`,
+  ).toEqual([]);
+}
+
+export async function signInAsOwner(page: Page): Promise<void> {
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Sign in as the demo owner" }).click();
+  await expect(page.getByRole("heading", { name: "Codes and sessions" })).toBeVisible();
+}

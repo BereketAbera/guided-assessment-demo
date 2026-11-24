@@ -121,10 +121,16 @@ export function DemoInbox() {
               {m.codes.length > 0 ? (
                 <ul className="mt-3 space-y-2">
                   {m.codes.map((c) => (
-                    <li key={c.code} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand px-3 py-2">
+                    <li
+                      key={c.code}
+                      data-testid="inbox-code-row"
+                      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand px-3 py-2"
+                    >
                       <div>
                         <p className="text-xs text-stone">{c.label}</p>
-                        <p className="font-mono text-lg font-semibold tracking-[0.12em]">{c.code}</p>
+                        <p className="font-mono text-lg font-semibold tracking-[0.12em]" data-testid="inbox-code">
+                          {c.code}
+                        </p>
                       </div>
                       <Button variant="secondary" size="sm" onClick={() => enterCode(c.code)}>
                         Use this code

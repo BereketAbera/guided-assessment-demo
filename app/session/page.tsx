@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Conversation } from "@/components/conversation";
-import { SiteHeader } from "@/components/site-header";
 import { currentSession } from "@/lib/server/context";
 import { conversationView, pathFor } from "@/lib/server/views";
 
@@ -14,11 +13,6 @@ export default async function SessionPage() {
   const view = conversationView(located);
 
   return (
-    <>
-      <SiteHeader />
-      <main id="main" className="flex-1">
-        <Conversation initial={view} />
-      </main>
-    </>
+    <Conversation initial={view} />
   );
 }

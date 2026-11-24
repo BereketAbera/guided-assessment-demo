@@ -115,9 +115,9 @@ export default async function AdminPage() {
                   <th scope="col" className="px-4 py-3 font-semibold">Code</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Status</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Last activity</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">Tokens in</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">Tokens out</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">Est. cost</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold whitespace-nowrap">Tokens in</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold whitespace-nowrap">Tokens out</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold whitespace-nowrap">Est. cost</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,7 +132,7 @@ export default async function AdminPage() {
                         {r.note ? ` · ${r.note}` : ""}
                       </span>
                     </th>
-                    <td className="px-4 py-3 align-top font-mono tracking-wider">{r.codeHint}</td>
+                    <td className="px-4 py-3 align-top font-mono tracking-wider whitespace-nowrap">{r.codeHint}</td>
                     <td className="px-4 py-3 align-top">
                       <StatusBadge status={r.status} label={r.statusLabel} />
                     </td>

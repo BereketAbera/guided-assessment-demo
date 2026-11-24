@@ -71,6 +71,8 @@ export function start(state: SessionState, firstName: string, now: number, cfg: 
       lastActivityAt: now,
       expiresAt: now + cfg.timeLimitDays * DAY,
       partIndex: opening.partIndex,
+      // The opening question is the first exchange: the prompt goes in, the question comes out.
+      usage: addUsage(state.meta.usage, exchangeUsage(cfg.promptTokens, [], opening.question)),
     },
     priv: {
       firstName: name,

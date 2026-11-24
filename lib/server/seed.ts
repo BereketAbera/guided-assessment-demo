@@ -71,17 +71,17 @@ export function seedSessions(
   const finished = make(
     play("Maren", SAMPLE_ANSWERS, now - 2 * DAY - 55 * MINUTE, cfg),
     { inputTokens: 248_300, outputTokens: 9_120, calls: 37 },
-    "Example: completed",
+    "Completed two days ago",
   );
   const underway = make(
     play("Tobias", SECOND_VOICE_ANSWERS, now - 3 * HOUR - 20 * MINUTE, cfg),
     { inputTokens: 96_400, outputTokens: 3_900, calls: 17 },
-    "Example: partway through",
+    "Partway through",
   );
   const lapsed = make(
     play("Ines", THIRD_VOICE_ANSWERS, now - 16 * DAY, cfg),
     { inputTokens: 41_200, outputTokens: 1_650, calls: 8 },
-    "Example: ran past the time limit",
+    "Ran past the time limit",
   );
   const removedState = play("Removed", SAMPLE_ANSWERS, now - 6 * DAY, cfg);
   const removed = make(
@@ -90,7 +90,7 @@ export function seedSessions(
       priv: null,
     },
     { inputTokens: 212_900, outputTokens: 8_300, calls: 33 },
-    "Example: answers deleted by the customer",
+    "Answers deleted by the customer",
   );
   const gift = make(
     { meta: newMeta(now - 1 * DAY), priv: null },

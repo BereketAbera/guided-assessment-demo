@@ -17,7 +17,7 @@ export function ProfileFigure({ traits, className }: { traits: Trait[]; classNam
   const summary = traits.map((t) => `${t.axis}: ${t.name}, ${t.score} of 5`).join("; ");
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className={className} role="img" aria-label={`Profile figure. ${summary}.`}>
+    <svg viewBox={`-34 6 ${size + 68} ${size - 22}`} className={className} role="img" aria-label={`Profile figure. ${summary}.`}>
       {[0.2, 0.4, 0.6, 0.8, 1].map((f) => (
         <polygon key={f} points={ring(f)} fill="none" stroke="#C9C0B1" strokeWidth={f === 1 ? 1.2 : 0.8} />
       ))}

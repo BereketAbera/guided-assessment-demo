@@ -82,7 +82,7 @@ export function CodeForm() {
         placeholder="XXXX-XXXX"
         aria-describedby={problem ? "code-help code-problem" : "code-help"}
         aria-invalid={problem ? true : undefined}
-        className="mt-2 block h-16 w-full rounded-lg border border-line bg-sand px-4 text-center font-mono text-[1.75rem] font-semibold tracking-[0.18em] text-ink uppercase placeholder:font-normal placeholder:tracking-[0.18em] placeholder:text-line focus-visible:border-pine focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-pine"
+        className="mt-2 block h-16 w-full rounded-lg border border-line bg-sand px-4 text-center font-mono text-[1.75rem] font-semibold tracking-[0.18em] text-ink uppercase placeholder:font-normal placeholder:tracking-[0.18em] placeholder:text-stone focus-visible:border-pine focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-pine"
       />
       <p id="code-help" className="mt-2 text-sm text-stone">
         Eight letters and numbers, from your email. Capitals, spaces and the dash don&apos;t matter.
