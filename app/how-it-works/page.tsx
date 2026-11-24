@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ReportJobDiagram } from "@/components/diagrams/report-job";
 import { ProfileFigure } from "@/components/report/profile-figure";
 import { SiteHeader } from "@/components/site-header";
 import { TryIt } from "@/components/try-it";
@@ -206,7 +207,7 @@ export default function HowItWorksPage() {
             </ol>
             <p className="max-w-3xl">
               If the same answer arrives twice, after a retry on a weak signal or a double tap, the second copy is
-              recognised and ignored. If two devices answer at the same moment, one of them is asked to retry on the
+              recognized and ignored. If two devices answer at the same moment, one of them is asked to retry on the
               newer conversation, so nothing is overwritten.
             </p>
             <p className="max-w-3xl rounded-lg bg-sand p-4 text-[0.95rem]">
@@ -251,12 +252,22 @@ export default function HowItWorksPage() {
               answers. So the last answer is saved, a job starts on the server, and the page only asks, every two
               seconds, which stage the job has reached.
             </p>
-            <ul className="max-w-3xl list-disc space-y-1.5 pl-5">
-              <li>Refresh during the wait, and the same stage comes back.</li>
-              <li>Close the page, and nothing is lost: the report never depended on it. The code opens the report.</li>
-              <li>The stages are named, with a time estimate, so the page never looks frozen.</li>
-              <li>In the real build the report is also emailed, which covers a phone that stays off.</li>
-            </ul>
+            {/* The same idea as a picture, beside the list on a wide screen and above it on a phone. */}
+            <div className="grid max-w-3xl items-center gap-x-10 gap-y-5 md:grid-cols-[minmax(0,24rem)_1fr]">
+              <figure className="border-y border-rule py-5">
+                <ReportJobDiagram className="block h-auto w-full" />
+                <figcaption className="mt-4 text-sm text-stone">
+                  The job lives on the server. The page only asks how far it has got, so a phone that drops out loses
+                  nothing.
+                </figcaption>
+              </figure>
+              <ul className="list-disc space-y-1.5 pl-5">
+                <li>Refresh during the wait, and the same stage comes back.</li>
+                <li>Close the page, and nothing is lost: the report never depended on it. The code opens the report.</li>
+                <li>The stages are named, with a time estimate, so the page never looks frozen.</li>
+                <li>In the real build the report is also emailed, which covers a phone that stays off.</li>
+              </ul>
+            </div>
             <p className="max-w-3xl rounded-lg bg-sand p-4 text-[0.95rem]">
               <strong>What this sample does not exercise.</strong> Here the job is a timer: the page-and-server half
               above is real, and no work runs in the background. In the real build on Vercel, the request that saves
@@ -474,7 +485,7 @@ export default function HowItWorksPage() {
             </p>
             <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               {owned.map(([name, what]) => (
-                <div key={name} className="border-l-2 border-clay pl-4">
+                <div key={name} className="border-l-2 border-rule pl-4">
                   <dt className="font-semibold">{name}</dt>
                   <dd className="text-[0.95rem]">{what}</dd>
                 </div>
