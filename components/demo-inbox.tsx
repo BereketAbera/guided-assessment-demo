@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Sheet } from "./ui/sheet";
@@ -29,6 +29,7 @@ export function refreshInbox(open = false) {
  */
 export function DemoInbox() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
 
@@ -43,8 +44,12 @@ export function DemoInbox() {
     }
   }, []);
 
+  // A visitor who has not bought or opened anything has an empty inbox; no need to ask the server.
   useEffect(() => {
-    void load();
+    if (document.cookie.includes("ga_active=1")) void load();
+  }, [pathname, load]);
+
+  useEffect(() => {
     const onEvent = (event: Event) => {
       void load();
       if ((event as CustomEvent<{ open?: boolean }>).detail?.open) setOpen(true);

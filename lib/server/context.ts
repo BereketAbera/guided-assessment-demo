@@ -12,6 +12,8 @@ import { getStore } from "./store";
 export const SANDBOX_COOKIE = "ga_sb";
 export const SESSION_COOKIE = "ga_sess";
 export const ADMIN_COOKIE = "ga_admin";
+/** Readable by the page, and holds nothing private: it only says this visitor has made something, so the inbox is worth fetching. */
+export const ACTIVE_COOKIE = "ga_active";
 
 let promptText: string | null = null;
 /** The prompt is a plain file in /settings, read once per server start. */
@@ -90,4 +92,9 @@ export async function isAdmin(): Promise<boolean> {
   const jar = await cookies();
   const ref = jar.get(SANDBOX_COOKIE)?.value;
   return isSandboxRef(ref) && jar.get(ADMIN_COOKIE)?.value === ref;
+}
+
+/** Marks this browser as having a sample space, so the demo inbox knows to load. */
+export async function markActive(): Promise<void> {
+  (await cookies()).set(ACTIVE_COOKIE, "1", { ...cookieOptions(SANDBOX_MAX_AGE), httpOnly: false });
 }

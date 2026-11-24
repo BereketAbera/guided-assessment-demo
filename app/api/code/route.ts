@@ -1,5 +1,13 @@
 import { cookies } from "next/headers";
-import { cookieOptions, encodePointer, repo, sandboxRef, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/server/context";
+import {
+  cookieOptions,
+  encodePointer,
+  markActive,
+  repo,
+  sandboxRef,
+  SESSION_COOKIE,
+  SESSION_MAX_AGE,
+} from "@/lib/server/context";
 import { fail, handle, ok, readJson, text } from "@/lib/server/http";
 import { pathFor } from "@/lib/server/views";
 
@@ -28,6 +36,7 @@ export function POST(request: Request) {
       );
     }
     (await cookies()).set(SESSION_COOKIE, encodePointer({ ref: located.ref, sessionId: record.id }), cookieOptions(SESSION_MAX_AGE));
+    await markActive();
     return ok({ status, next: pathFor(status) });
   });
 }
