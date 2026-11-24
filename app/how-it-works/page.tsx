@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ProfileFigure } from "@/components/report/profile-figure";
 import { SiteHeader } from "@/components/site-header";
+import { TryIt } from "@/components/try-it";
 import { sampleReport } from "@/lib/report/sample";
 import { RETENTION_DAYS } from "@/lib/sandbox-ref";
 import { settings } from "@/lib/settings";
@@ -31,8 +32,13 @@ function Source({ href, children }: { href: string; children: ReactNode }) {
 const simulated: { piece: string; here: string; real: string }[] = [
   {
     piece: "The guide",
-    here: "Scripted reflections and rules: a short answer gets one follow-up, and the reflection is chosen from words in the answer. No model is called.",
+    here: "Scripted reflections and rules: a short answer gets one follow-up, and the reflection is chosen from words in the answer. No model is called, so a line may not match an answer you type yourself.",
     real: "Your finished prompt, sent with the conversation to the Claude API from the server. The API key never reaches the browser.",
+  },
+  {
+    piece: "The report text",
+    here: "Assembled by rules from words in the answers: each part reads as one of two patterns, or as neither when the words point both ways or nowhere.",
+    real: "Written by the model from your prompt, and returned as labeled sections that fill the same template.",
   },
   {
     piece: "Payment",
@@ -51,12 +57,12 @@ const simulated: { piece: string; here: string; real: string }[] = [
   },
   {
     piece: "The report job",
-    here: "A job whose stage is worked out from its start time, stored on the server. About 25 seconds.",
+    here: "A timer. The report is already assembled when the last answer is saved; the stage shown is worked out from a start time stored on the server. About 25 seconds.",
     real: "A background job that calls the model and writes each stage to the database. One to two minutes.",
   },
   {
     piece: "The PDF",
-    here: "The report page with a print layout: Download PDF opens the print dialog.",
+    here: "The report page with a print layout: Save as PDF opens the print dialog.",
     real: "The same template rendered to a PDF file on the server, so the download and the email attachment are one file.",
   },
   {
@@ -73,14 +79,41 @@ const simulated: { piece: string; here: string; real: string }[] = [
 
 const owned = [
   ["Your domain", "Stays at GoDaddy. Two DNS records point it at the app host."],
-  ["The app host", "Runs the site and holds the secret keys as environment settings."],
-  ["The database", "Codes, sessions, encrypted answers and reports."],
-  ["The payment account", "Takes the money, pays out to you, and is where refunds are issued."],
-  ["The email sender", "Sends access codes and reports from your domain."],
+  ["The app host: Vercel", "Runs the site and the report job, and holds the secret keys as environment settings."],
+  ["The database: Postgres at Neon", "Codes, sessions, encrypted answers and reports."],
+  ["The payment account: Stripe", "Takes the money and pays out to you. Refunds are issued from your admin and paid back through this account."],
+  ["The email sender: Resend", "Sends access codes and reports from your domain."],
   ["Your Kit account", "Buyers are added to the list you choose."],
   ["The AI account", "The Claude API key and its monthly spend limit."],
-  ["The code repository", "All the code, the settings folder and the handover guide."],
+  ["The code repository: GitHub", "All the code, the settings folder and the handover guide."],
 ];
+
+/** The admin items the brief lists that this sample leaves out, and what the real build does for each. */
+const adminLater = [
+  ["Reports", "The owner opens a customer's report through the same step as a transcript: a reason first, and a line in the access log."],
+  ["Feedback", "Customer and beta feedback, listed against the session it came from."],
+  ["Refunds", "A Refund button on the session. It calls the payment provider, records the refund and retires the code."],
+  ["Prices", "Edited in the admin and used by checkout from the next sale on."],
+  ["Beta mode", "Invited testers get codes marked as beta, a debrief form after the report, and CSV exports of sessions, feedback and debriefs."],
+];
+
+/**
+ * The shape of the real request, shown as text. Nothing in this sample runs
+ * it. Lines are kept short so the block reads on a phone without scrolling.
+ */
+const requestShape = `const reply = await client.messages.create({
+  // the model named in the settings file
+  model: settings.model.name,
+  max_tokens: 16000,
+  // repeated text is read at the cached rate
+  cache_control: { type: "ephemeral" },
+  // your prompt, kept on the server
+  system: guidePrompt,
+  // every stored turn, in order
+  messages: toMessages(session.turns),
+});
+// what this reply cost, for the admin
+await addUsage(session.id, reply.usage);`;
 
 export default function HowItWorksPage() {
   const report = sampleReport();
@@ -96,9 +129,13 @@ export default function HowItWorksPage() {
           This is a working sample of the journey around a guided self-assessment: a code, a conversation one question
           at a time, a report, and an owner&apos;s view. The assessment, the names and the report text are invented.
           The guide is simulated, no payment is taken, and nothing is emailed. The parts that are hard to get right
-          are real, running code: saving after every answer, resuming with the code alone, a report that outlives the
-          page, deletion, and an admin area that does not read answers.
+          are real, running code: saving after every answer, resuming with the code alone, a waiting screen whose
+          stage is read from the server, so it survives a refresh, a closed page and another device (the job itself is
+          a timer in this sample), deletion, and an admin area that does not read answers.
         </p>
+        <div className="mt-8">
+          <TryIt />
+        </div>
         <nav aria-label="On this page" className="mt-6">
           <ul className="flex flex-wrap gap-x-5 gap-y-1 text-[0.95rem]">
             {[
@@ -107,6 +144,7 @@ export default function HowItWorksPage() {
               ["#job", "The report job"],
               ["#template", "Two ways to lay out the report"],
               ["#privacy", "Privacy"],
+              ["#admin", "The owner admin"],
               ["#own", "What you would own"],
             ].map(([href, label]) => (
               <li key={href}>
@@ -121,7 +159,7 @@ export default function HowItWorksPage() {
         <div className="mt-8">
           <Section id="simulated" title="What is simulated, and what production would use">
             <div className="overflow-x-auto rounded-xl border border-rule bg-white" tabIndex={0} role="region" aria-label="Sample compared with production">
-              <table className="w-full min-w-[40rem] border-collapse text-left text-[0.93rem]">
+              <table className="stack-table w-full border-collapse text-left text-[0.93rem] sm:min-w-[34rem]">
                 <thead>
                   <tr className="border-b border-rule text-xs tracking-wide text-stone uppercase">
                     <th scope="col" className="w-[9.5rem] px-4 py-3 font-semibold">Piece</th>
@@ -133,8 +171,8 @@ export default function HowItWorksPage() {
                   {simulated.map((row) => (
                     <tr key={row.piece} className="border-b border-rule last:border-b-0">
                       <th scope="row" className="px-4 py-3 align-top font-semibold">{row.piece}</th>
-                      <td className="px-4 py-3 align-top">{row.here}</td>
-                      <td className="px-4 py-3 align-top">{row.real}</td>
+                      <td data-label="In this sample" className="px-4 py-3 align-top">{row.here}</td>
+                      <td data-label="In the real build" className="px-4 py-3 align-top">{row.real}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -174,7 +212,25 @@ export default function HowItWorksPage() {
             <p className="max-w-3xl rounded-lg bg-sand p-4 text-[0.95rem]">
               <strong>Checked on this live site:</strong> an automated test starts a session in one browser, answers
               two questions, then enters the same code in a second, separate browser with no shared cookies or storage,
-              and confirms it opens on the third question with both answers kept.
+              and confirms it opens on the third question with both answers kept. It does the same with the ready-made
+              &ldquo;Partway through&rdquo; code from the Demo inbox.
+            </p>
+            <p className="max-w-3xl">
+              In the real build, each turn rebuilds the request from what is stored. This is its shape; nothing in this
+              sample runs it.
+            </p>
+            <pre
+              tabIndex={0}
+              aria-label="The shape of the request to the model"
+              className="max-w-3xl overflow-x-auto rounded-xl border border-rule bg-white p-4 font-mono text-[0.72rem] leading-relaxed sm:text-[0.82rem]"
+            >
+              {requestShape}
+            </pre>
+            <p className="max-w-3xl text-[0.95rem] text-stone">
+              The usage numbers that come back with every reply (<span className="font-mono text-[0.85rem]">input_tokens</span>,{" "}
+              <span className="font-mono text-[0.85rem]">output_tokens</span> and, with caching,{" "}
+              <span className="font-mono text-[0.85rem] [overflow-wrap:anywhere]">cache_read_input_tokens</span>) are
+              added up per session. That sum is the cost column in the owner admin.
             </p>
           </Section>
 
@@ -197,10 +253,23 @@ export default function HowItWorksPage() {
             </p>
             <ul className="max-w-3xl list-disc space-y-1.5 pl-5">
               <li>Refresh during the wait, and the same stage comes back.</li>
-              <li>Close the page, and the job finishes anyway. The code opens the finished report.</li>
+              <li>Close the page, and nothing is lost: the report never depended on it. The code opens the report.</li>
               <li>The stages are named, with a time estimate, so the page never looks frozen.</li>
               <li>In the real build the report is also emailed, which covers a phone that stays off.</li>
             </ul>
+            <p className="max-w-3xl rounded-lg bg-sand p-4 text-[0.95rem]">
+              <strong>What this sample does not exercise.</strong> Here the job is a timer: the page-and-server half
+              above is real, and no work runs in the background. In the real build on Vercel, the request that saves
+              the last answer also writes a job row to the database and starts a background task (Next.js{" "}
+              <span className="font-mono text-[0.85rem]">after</span>), which the host keeps running once the response
+              has been sent, for up to 300 seconds by default (
+              <Source href="https://vercel.com/docs/functions/limitations">source</Source>). That task calls the model,
+              writes each stage to the job row as it goes, and stores the finished report; the waiting screen reads
+              that row exactly as it reads the timer here. If the call fails or the task is cut off, the row still says
+              where it stopped. A scheduled check once a minute restarts any job that has run too long, from the same
+              stored conversation and under the same job, so a retry can never produce two reports. After three
+              attempts the session is flagged in your admin, and the customer is told the report will arrive by email.
+            </p>
           </Section>
 
           <Section id="template" title="Two ways to lay out the report">
@@ -208,6 +277,11 @@ export default function HowItWorksPage() {
               The report can be shown by (a) styling whatever formatted text the model writes, or (b) having the model
               return labeled sections that fill a designed template. This sample is built the second way. Here is the
               same sample report both ways.
+            </p>
+            <p className="max-w-3xl border-l-4 border-pine pl-4">
+              <strong>My recommendation is (b).</strong> Your done-list asks for the title, key statement and profile
+              to be visibly styled, and only a template can promise that every time, on screen, in the PDF and in the
+              email.
             </p>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="rounded-xl border border-rule bg-white p-5">
@@ -240,13 +314,37 @@ export default function HowItWorksPage() {
                   <blockquote className="mt-3 border-l-4 border-clay pl-4 font-serif text-[1.08rem] leading-snug font-medium">
                     {report.keyStatement}
                   </blockquote>
-                  <div className="mt-4 grid grid-cols-[7.5rem_1fr] items-center gap-3 rounded-lg bg-sand p-3">
-                    <ProfileFigure traits={report.profile.traits} className="w-full" />
-                    <div>
-                      <p className="eyebrow">Profile</p>
-                      <p className="font-serif text-lg leading-tight font-semibold">{report.profile.name}</p>
+                  <div className="mt-4 rounded-lg bg-sand p-3">
+                    <div className="grid grid-cols-[6.5rem_1fr] items-center gap-3">
+                      <ProfileFigure traits={report.profile.traits} labels={false} className="w-full" />
+                      <div>
+                        <p className="eyebrow">Profile</p>
+                        <p className="font-serif text-lg leading-tight font-semibold">{report.profile.name}</p>
+                      </div>
                     </div>
+                    <dl className="mt-3 divide-y divide-[#d9cfbe] border-t border-[#d9cfbe] text-[0.88rem]">
+                      {report.profile.traits.slice(0, 2).map((t) => (
+                        <div key={t.partId} className="flex items-center justify-between gap-3 py-1.5">
+                          <dt className="font-semibold">{t.name}</dt>
+                          <dd>
+                            <span className="inline-flex items-center gap-1" role="img" aria-label={`${t.score} of 5`}>
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <span
+                                  key={n}
+                                  className={n <= t.score ? "size-2 rounded-full bg-pine" : "size-2 rounded-full border border-line bg-paper"}
+                                />
+                              ))}
+                            </span>
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
                   </div>
+                  <p className="mt-4 font-serif text-lg font-semibold">{report.sections[0]?.heading}</p>
+                  <p className="eyebrow mt-2">In your words</p>
+                  <p className="mt-1 font-serif text-[0.95rem] leading-snug text-stone italic">
+                    &ldquo;{report.sections[0]?.quote}&rdquo;
+                  </p>
                 </div>
                 <p className="mt-4 text-sm text-stone">
                   The model returns <span className="font-mono text-[0.8rem]">key_statement</span>,{" "}
@@ -257,7 +355,7 @@ export default function HowItWorksPage() {
               </div>
             </div>
             <div className="overflow-x-auto rounded-xl border border-rule bg-white" tabIndex={0} role="region" aria-label="Comparison of the two approaches">
-              <table className="w-full min-w-[38rem] border-collapse text-left text-[0.93rem]">
+              <table className="stack-table w-full border-collapse text-left text-[0.93rem] sm:min-w-[34rem]">
                 <thead>
                   <tr className="border-b border-rule text-xs tracking-wide text-stone uppercase">
                     <th scope="col" className="w-[11rem] px-4 py-3 font-semibold">Question</th>
@@ -276,8 +374,8 @@ export default function HowItWorksPage() {
                   ].map(([q, a, b]) => (
                     <tr key={q} className="border-b border-rule last:border-b-0">
                       <th scope="row" className="px-4 py-3 align-top font-semibold">{q}</th>
-                      <td className="px-4 py-3 align-top">{a}</td>
-                      <td className="px-4 py-3 align-top">{b}</td>
+                      <td data-label="(a) Styled text" className="px-4 py-3 align-top">{a}</td>
+                      <td data-label="(b) Template" className="px-4 py-3 align-top">{b}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -308,25 +406,36 @@ export default function HowItWorksPage() {
                 shows status, last activity and cost without decrypting anything.
               </li>
               <li>
-                <strong>Opening a transcript is deliberate and logged.</strong> It needs a reason, and the reason, the
-                time and the session are written to the access log in the same step that returns the answers.
+                <strong>Opening a transcript is deliberate and logged.</strong> The server refuses a request without a
+                reason, and the reason, the time and the session are written to the access log in the same step that
+                returns the answers.
               </li>
               <li>
-                <strong>Codes are not stored.</strong> Only a keyed one-way hash is kept, plus the first four
-                characters for recognition. A code created by hand is shown once.
+                <strong>The session record holds no code.</strong> It keeps a keyed one-way hash of the code, plus the
+                first four characters for recognition. The code itself lives in the email that was sent, and a code
+                created by hand is shown once. If a code is lost, the owner, or a &ldquo;Lost your code?&rdquo; form,
+                issues a new one to the purchase email and the old one stops working. In this sample the Demo inbox
+                stands in for the buyer&apos;s mailbox, so it holds the simulated emails, codes included, encrypted.
               </li>
               <li>
                 <strong>Delete means delete.</strong> &ldquo;Delete my answers&rdquo; on the report removes the sealed
                 half from the stored record. What remains says only that the code was used.
               </li>
               <li>
-                <strong>Nothing sensitive in the browser.</strong> The session is held by an http-only cookie the page
-                cannot read. The only thing kept on the device is the answer still being typed.
+                <strong>Only the unsent answer stays on the device.</strong> The session is held by an http-only
+                cookie the page cannot read, and its value is sealed with the server&apos;s key, so it cannot be read,
+                altered or made by hand. The answer still being typed is kept on the device until it is sent; Take a
+                break offers to remove it on a shared computer.
               </li>
               <li>
-                <strong>A fixed lifetime.</strong> In this sample each visitor&apos;s data is private to them and is
-                removed by a daily job {RETENTION_DAYS} days after it was created. The real product would follow the
-                retention period you choose.
+                <strong>Back does not bring it back.</strong> Deleting, or leaving with Take a break, replaces the page
+                in the browser&apos;s history, and a page restored by the Back button checks with the server before it
+                shows anything.
+              </li>
+              <li>
+                <strong>A fixed lifetime.</strong> In this sample each visitor has a space of their own, a code opens
+                only its one session from another device, and everything is removed by a daily job {RETENTION_DAYS}{" "}
+                days after it was created. The real product would follow the retention period you choose.
               </li>
             </ul>
             <p className="max-w-3xl text-[0.95rem] text-stone">
@@ -336,6 +445,26 @@ export default function HowItWorksPage() {
               <Source href="https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data">source</Source>
               ). Those are worth stating in your own privacy notice.
             </p>
+          </Section>
+
+          <Section id="admin" title="The owner admin: what is here, and what the real build adds">
+            <p className="max-w-3xl">
+              The{" "}
+              <Link href="/admin" className="link">
+                owner admin
+              </Link>{" "}
+              in this sample covers five of the things your brief lists: access codes, sessions, AI cost per session,
+              creating a code by hand and reopening an expired session. The other five are not built here. In the real
+              build:
+            </p>
+            <dl className="grid max-w-3xl gap-y-3">
+              {adminLater.map(([name, what]) => (
+                <div key={name} className="grid gap-x-4 sm:grid-cols-[7rem_1fr]">
+                  <dt className="font-semibold">{name}</dt>
+                  <dd className="text-[0.98rem]">{what}</dd>
+                </div>
+              ))}
+            </dl>
           </Section>
 
           <Section id="own" title="What you would own">
@@ -351,10 +480,19 @@ export default function HowItWorksPage() {
                 </div>
               ))}
             </dl>
+            <p className="max-w-3xl rounded-lg bg-sand p-4 text-[0.95rem]">
+              <strong>Running cost, estimated: about $20 to $40 a month</strong> before any sale. Vercel Pro is $20 (
+              <Source href="https://vercel.com/pricing">source</Source>). Neon&apos;s Postgres has a free plan to
+              start, then pay-as-you-go (<Source href="https://neon.com/pricing">source</Source>). Resend is free up
+              to 3,000 emails a month, then $20 (<Source href="https://resend.com/pricing">source</Source>). On top
+              come Stripe&apos;s fee of 2.9% plus 30 cents on each US card sale (
+              <Source href="https://stripe.com/pricing">source</Source>) and the AI cost of each session, which the
+              admin shows. List prices as read on November 24, 2026.
+            </p>
             <p className="max-w-3xl">
-              The model and the prompt are read from the{" "}
+              The model, the prompt and the sales text are read from the{" "}
               <Link href="/settings" className="link">
-                settings file
+                settings files
               </Link>
               ; this sample is set to <span className="font-mono text-[0.9rem]">{settings.model.name}</span>.
             </p>
