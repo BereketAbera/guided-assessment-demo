@@ -32,6 +32,11 @@ test("a two-pack gives two working codes", async ({ page }) => {
   const codes = await buyCodes(page, "two-pack");
   expect(codes).toHaveLength(2);
   expect(codes[0]).not.toBe(codes[1]);
+  // "Another" is said only on the pack that was bought, and the other card keeps its own height.
+  await expect(page.getByRole("button", { name: "Buy another two-pack" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Buy single", exact: true })).toBeVisible();
+  const single = await page.getByRole("heading", { name: "Single" }).locator("..").boundingBox();
+  expect(single!.height).toBeLessThan(330);
   for (const code of codes) {
     await enterCode(page, code);
     await expect(page).toHaveURL(/\/start$/);
@@ -53,6 +58,46 @@ test("each visitor's codes and sessions are private to them", async ({ page, bro
   await visitor.getByRole("button", { name: /Demo inbox/ }).click();
   await expect(visitor.getByRole("dialog").getByText("Your access code", { exact: true })).toHaveCount(0);
   await other.close();
+});
+
+test("the Demo inbox count is shown only once it is known", async ({ page }) => {
+  type Seen = { inboxCounts: string[]; sawEmptyInbox: boolean };
+  // Record every number the badge shows, and whether the panel ever says it is empty, from the first paint on.
+  await page.addInitScript(() => {
+    const seen = window as unknown as Seen;
+    seen.inboxCounts = [];
+    seen.sawEmptyInbox = false;
+    const note = () => {
+      if (document.querySelector('[role="dialog"]')?.textContent?.includes("No messages yet")) seen.sawEmptyInbox = true;
+      const badge = document.querySelector('[data-testid="inbox-count"]');
+      if (!badge || getComputedStyle(badge).visibility === "hidden") return;
+      const text = (badge.textContent ?? "").trim();
+      if (text && seen.inboxCounts[seen.inboxCounts.length - 1] !== text) seen.inboxCounts.push(text);
+    };
+    new MutationObserver(note).observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
+  });
+  const seen = () =>
+    page.evaluate(() => {
+      const w = window as unknown as Seen;
+      return { counts: w.inboxCounts, empty: w.sawEmptyInbox };
+    });
+  const badge = page.getByTestId("inbox-count");
+
+  // A new visitor has a known zero. A purchase moves it to 1 together with the confirmation.
+  await buyCodes(page);
+  await expect(badge).toHaveText("1");
+  expect((await seen()).counts).toEqual(["0", "1"]);
+
+  // After a full page load the count is unknown until the inbox has been read: no 0 on the way to 1.
+  await page.reload();
+  await expect(badge).toHaveText("1");
+  expect((await seen()).counts).toEqual(["1"]);
+
+  // Opened straight after a load, the panel waits for the messages and never says it is empty.
+  await page.reload();
+  await page.getByRole("button", { name: /Demo inbox/ }).click();
+  await expect(page.getByRole("dialog").getByTestId("inbox-code").first()).toBeVisible();
+  expect((await seen()).empty).toBe(false);
 });
 
 test("reset demo clears this visitor's sample space", async ({ page }) => {
@@ -98,6 +143,22 @@ test("the sample report, settings and how-it-works pages", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Try it in five minutes" })).toBeVisible();
   await expect(page.getByText("My recommendation is (b).")).toBeVisible();
   await expect(page.getByText("Running cost, estimated")).toBeVisible();
+  // The drawing of the report job is named for screen readers, no label runs past its edge, and none is under 12 px.
+  const diagram = page.getByRole("img", { name: /when the phone drops out/ });
+  await expect(diagram).toBeVisible();
+  const labels = await diagram.evaluate((svg: SVGSVGElement) => {
+    const width = svg.viewBox.baseVal.width;
+    const scale = svg.getBoundingClientRect().width / width;
+    const texts = [...svg.querySelectorAll("text")];
+    return {
+      count: texts.length,
+      outside: texts.filter((t) => t.getBBox().x < 0 || t.getBBox().x + t.getBBox().width > width).map((t) => t.textContent),
+      smallest: Math.min(...texts.map((t) => parseFloat(getComputedStyle(t).fontSize) * scale)),
+    };
+  });
+  expect(labels.count).toBeGreaterThan(10);
+  expect(labels.outside).toEqual([]);
+  expect(labels.smallest).toBeGreaterThanOrEqual(11.95);
   await expectAccessible(page);
 
   await page.goto("/this-page-does-not-exist");

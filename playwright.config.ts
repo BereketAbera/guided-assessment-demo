@@ -1,7 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
-// Local runs start the production build on port 3601 with the in-memory store.
-const baseURL = "http://localhost:3601";
+// Local runs start the production build with the in-memory store, on port 3601 unless E2E_PORT says otherwise.
+const port = process.env.E2E_PORT ?? "3601";
+const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -18,7 +19,7 @@ export default defineConfig({
     { name: "desktop", use: { viewport: { width: 1440, height: 900 } } },
   ],
   webServer: {
-    command: "pnpm exec next start -p 3601",
+    command: `pnpm exec next start -p ${port}`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,
