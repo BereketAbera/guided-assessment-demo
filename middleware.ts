@@ -27,5 +27,7 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|api/cron).*)"],
+  // Pages and API routes only. Icons and the link-preview picture are left out, so a service that
+  // fetches a pasted link's picture is not handed a visitor cookie.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|opengraph-image.png|api/cron).*)"],
 };
