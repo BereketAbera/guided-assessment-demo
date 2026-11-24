@@ -40,12 +40,12 @@ export function Purchase({ offers }: { offers: Offer[] }) {
 
   return (
     <div>
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid max-w-4xl gap-5 md:grid-cols-2">
         {offers.map((offer) => (
           <div key={offer.id} className="flex flex-col rounded-xl border border-rule bg-white p-6 sm:p-7">
             <h3 className="font-serif text-2xl font-semibold">{offer.name}</h3>
             <p className="mt-1 text-stone">{offer.blurb}</p>
-            <p className="mt-5 flex items-baseline gap-2">
+            <p className="mt-auto flex items-baseline gap-2 pt-5">
               <span className="font-serif text-5xl font-semibold tracking-tight">{offer.price}</span>
               {offer.each ? <span className="text-sm text-stone">{offer.each}</span> : null}
             </p>
@@ -57,7 +57,7 @@ export function Purchase({ offers }: { offers: Offer[] }) {
         ))}
       </div>
 
-      <div aria-live="polite" className="mt-5">
+      <div aria-live="polite" className="mt-5 max-w-4xl">
         {error ? (
           <p role="alert" className="rounded-lg border border-clay bg-white p-4 text-sm font-medium">
             {error}

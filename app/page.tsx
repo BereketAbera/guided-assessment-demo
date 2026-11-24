@@ -89,7 +89,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="buy" className="mx-auto max-w-4xl scroll-mt-6 px-5 py-16 sm:px-8">
+        <section id="buy" className="mx-auto max-w-6xl scroll-mt-6 px-5 py-16 sm:px-8">
           <h2 className="font-serif text-3xl font-semibold tracking-tight">{salesPage.pricingHeading}</h2>
           <p className="mt-2 max-w-2xl text-stone">
             Each access code opens one assessment and one report. A code brings you back to where you stopped, on any

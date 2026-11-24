@@ -107,6 +107,7 @@ export default async function AdminPage() {
           <h2 id="sessions-heading" className="sr-only">
             Sessions
           </h2>
+          <p className="mb-2 text-sm text-stone md:hidden">Swipe the table sideways for last activity, tokens and cost.</p>
           <div className="overflow-x-auto rounded-xl border border-rule bg-white" tabIndex={0} role="region" aria-label="Sessions table">
             <table className="w-full min-w-[56rem] border-collapse text-left text-[0.9rem]">
               <thead>

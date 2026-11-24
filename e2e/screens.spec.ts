@@ -57,10 +57,12 @@ test("screenshots", async ({ browser }) => {
 
   await expect(p).toHaveURL(/\/report$/, { timeout: 60_000 });
   await expect(p.getByRole("heading", { name: "Your Working Style Reflection" })).toBeVisible();
+  await p.waitForLoadState("networkidle");
   await p.screenshot({ animations: "disabled", path: shot("report-phone"), fullPage: true });
 
   await d.goto("/report");
   await expect(d.getByRole("heading", { name: "Your Working Style Reflection" })).toBeVisible();
+  await d.waitForLoadState("networkidle");
   await d.screenshot({ animations: "disabled", path: shot("report-desktop") });
   await d.screenshot({ animations: "disabled", path: shot("report-desktop-full"), fullPage: true });
 

@@ -15,6 +15,7 @@ export default async function StartPage() {
   if (!located) redirect("/code");
   if (located.status !== "not_started") redirect(pathFor(located.status));
   const { assessment, parts } = settings;
+  const partsWord = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"][parts.length] ?? String(parts.length);
 
   return (
     <FlowShell>
@@ -38,7 +39,7 @@ export default async function StartPage() {
         <li className="flex gap-3">
           <ListOrdered aria-hidden className="mt-1 size-5 shrink-0 text-pine" />
           <span>
-            <strong>{parts.length} parts, one question at a time.</strong> Type, or tap the microphone on your keyboard
+            <strong>{partsWord} parts, one question at a time.</strong> Type, or tap the microphone on your keyboard
             and speak. You can edit each answer until you continue.
           </span>
         </li>

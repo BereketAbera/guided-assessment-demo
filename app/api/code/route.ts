@@ -20,12 +20,12 @@ export function POST(request: Request) {
     const body = await readJson(request);
     const located = await repo().locate(await sandboxRef(), text(body.code));
     if (!located) {
-      return fail("not_found", "We can't find that code. Check it against your email, one character at a time.", 404);
+      return fail("not_found", "Check it against your email, one character at a time. Capitals, spaces and the dash don't matter.", 404);
     }
     const { record, status } = located;
     if (status === "deleted") {
       const when = record.meta.deletedAt ? ` on ${longDate(record.meta.deletedAt)}` : "";
-      return fail("used", `This code has already been used, and its answers were deleted${when}. A code opens one assessment.`, 410);
+      return fail("used", `Its answers were deleted${when}, and a code opens one assessment only.`, 410);
     }
     if (status === "expired") {
       const when = record.meta.expiresAt ? ` on ${longDate(record.meta.expiresAt)}` : "";

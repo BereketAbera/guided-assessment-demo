@@ -98,7 +98,7 @@ export function DemoInbox() {
         description="Nothing is emailed in this sample. The messages the real product would send appear here."
       >
         {count === 0 ? (
-          <p className="rounded-lg border border-dashed border-line p-4 text-sm text-stone">
+          <p className="mb-4 rounded-lg border border-dashed border-line p-4 text-sm text-stone">
             No messages yet. Make a simulated purchase on the sales page and your access code arrives here.
           </p>
         ) : null}
