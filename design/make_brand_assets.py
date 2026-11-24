@@ -11,7 +11,7 @@ import struct
 import sys
 import textwrap
 
-from brand import CLAY, INK, MARK, OUT, PAPER, ROOT, RULE, STONE, escape, pick, sales_page, settings
+from brand import CLAY, INK, MARK, OUT, PAPER, ROOT, RULE, STONE, escape, sales_page, settings
 
 WIDTH, HEIGHT = 1200, 630
 MARGIN = 80
@@ -41,10 +41,10 @@ def lines(x: float, y: float, step: float, rows: list[str], attrs: str) -> str:
 def og_svg() -> str:
     brand = settings()["assessment"]["brand"]
     sales = sales_page()
-    # Source Serif 4 and Inter are the site's web fonts. When they are not installed, the next family in the
-    # site's own stack is used, so the picture stays close to the page.
-    serif = pick(["Source Serif 4", "Iowan Old Style", "Georgia"], "serif")
-    sans = pick(["Inter", "Helvetica Neue", "Helvetica", "Arial"], "sans-serif")
+    # Source Serif 4 and Inter are the site's web fonts. design/render_og.mjs loads them from design/fonts
+    # and refuses to draw the picture without them, so a fallback family can never ship.
+    serif = "'Source Serif 4'"
+    sans = "Inter"
 
     headline = textwrap.wrap(sales["headline"], width=17)
     statement = textwrap.wrap(KEY_STATEMENT, width=24)
@@ -70,7 +70,7 @@ def og_svg() -> str:
         f'<text x="{MARGIN}" y="{head_y - 92}" font-family="{sans}" font-weight="700" font-size="19" '
         f'letter-spacing="2.6" fill="{STONE}">{escape(eyebrow)}</text>',
         lines(MARGIN, head_y, head_step, headline,
-              f'font-family="{serif}" font-weight="700" font-size="{head_size}" letter-spacing="-1.2" fill="{INK}"'),
+              f'font-family="{serif}" font-weight="600" font-size="{head_size}" letter-spacing="-1.2" fill="{INK}"'),
         # The key statement with its clay rule: the one place the report uses clay.
         f'<rect x="{quote_x - 30}" y="{rule_top:g}" width="6" height="{rule_bottom - rule_top:g}" fill="{CLAY}"/>',
         lines(quote_x, quote_y, quote_step, statement,

@@ -1,10 +1,9 @@
-"""Shared constants for the design scripts: the palette, the mark and the font choice.
+"""Shared constants for the design scripts: the palette and the mark.
 
 Standard library only. The palette is the one in app/globals.css.
 """
 
 import json
-import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,25 +32,6 @@ def settings() -> dict:
 
 def sales_page() -> dict:
     return json.loads((ROOT / "settings" / "sales-page.json").read_text())
-
-
-def installed_fonts() -> set[str]:
-    """Family names known to fontconfig, lower case. Empty when fc-list is missing."""
-    try:
-        listing = subprocess.run(["fc-list", ":", "family"], capture_output=True, text=True, check=True).stdout
-    except (OSError, subprocess.CalledProcessError):
-        return set()
-    # One line per font file; a file may carry several family names, separated by commas.
-    return {name.strip().lower() for line in listing.splitlines() for name in line.split(",") if name.strip()}
-
-
-def pick(candidates: list[str], fallback: str) -> str:
-    """The first installed family from the list. The pictures are drawn with fonts already on the machine."""
-    known = installed_fonts()
-    for name in candidates:
-        if name.lower() in known:
-            return name
-    return fallback
 
 
 def escape(text: str) -> str:
