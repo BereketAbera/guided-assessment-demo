@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ADMIN_COOKIE, cookieOptions, markActive, repo, sandboxRef } from "@/lib/server/context";
+import { ADMIN_COOKIE, cookieOptions, encodeOwner, markActive, OWNER_HOURS, repo, sandboxRef } from "@/lib/server/context";
 import { handle, ok } from "@/lib/server/http";
 
 /**
@@ -10,7 +10,7 @@ export function POST() {
   return handle(async () => {
     const ref = await sandboxRef();
     await repo().mutate(ref, () => undefined);
-    (await cookies()).set(ADMIN_COOKIE, ref, cookieOptions(4 * 60 * 60));
+    (await cookies()).set(ADMIN_COOKIE, encodeOwner(ref, Date.now()), cookieOptions(OWNER_HOURS * 60 * 60));
     await markActive();
     return ok({ signedIn: true });
   });

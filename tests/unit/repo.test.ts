@@ -97,6 +97,21 @@ describe("codes and sessions", () => {
     expect(state.priv?.turns.filter((t) => t.answer !== null)).toHaveLength(2);
   });
 
+  it("finds the ready-made codes from another device too", async () => {
+    await repo.purchase(ref, "single");
+    const inbox = await repo.inbox(ref);
+    const ready = inbox.find((m) => m.kind === "try_codes")!.codes;
+    expect(ready).toHaveLength(3);
+    const elsewhere = newSandboxRef(now);
+    const partway = (await repo.locate(elsewhere, ready[0]!.code))!;
+    expect(partway).toMatchObject({ ref, status: "in_progress" });
+    expect(Repo.open(partway.record).priv?.turns.at(-1)).toMatchObject({ questionId: "others-1", partIndex: 2, answer: null });
+    expect((await repo.locate(elsewhere, ready[1]!.code))?.status).toBe("expired");
+    expect((await repo.locate(elsewhere, ready[2]!.code))?.status).toBe("deleted");
+    // The second device was given a session, not a space of its own with that code in it.
+    expect(await repo.read(elsewhere)).toBeNull();
+  });
+
   it("never stores a code, a first name or an answer in the clear", async () => {
     const { code } = await completeSession("Maren");
     const everything = [...data.values()].map((d) => d.body).join("\n");
@@ -155,6 +170,16 @@ describe("the owner's view", () => {
     expect(doc.sessions.find((s) => s.id === sessionId)?.transcriptOpens).toBe(1);
   });
 
+  it("refuses to open a transcript without a reason, and logs nothing", async () => {
+    const { sessionId } = await completeSession();
+    for (const reason of ["", "   ", "x", "ok "]) {
+      await expect(repo.openTranscript(ref, sessionId, reason)).rejects.toMatchObject({ code: "reason_required" });
+    }
+    const doc = (await repo.read(ref))!;
+    expect(doc.audit.some((a) => a.action === "transcript_opened")).toBe(false);
+    expect(doc.sessions.find((s) => s.id === sessionId)?.transcriptOpens).toBe(0);
+  });
+
   it("creates a code by hand and reopens an expired session with its answers kept", async () => {
     const made = await repo.createCode(ref, "  Gift for a tester  ");
     expect((await repo.locate(newSandboxRef(now), made.code))?.record.note).toBe("Gift for a tester");
@@ -182,6 +207,21 @@ describe("the report job and the inbox", () => {
     await repo.emailCopy(ref, sessionId);
     expect((await repo.inbox(ref)).some((m) => m.kind === "report_copy")).toBe(true);
   });
+
+  it("lets a report message open the report with the code from the same mailbox, and only there", async () => {
+    const { code, sessionId } = await completeSession();
+    now += 30_000;
+    const mine = (await repo.inbox(ref)).find((m) => m.kind === "report_ready")!;
+    expect(mine.openWith).toBe(code);
+    // A second device holding only this code sees its own report message, without the buyer's mailbox.
+    const elsewhere = newSandboxRef(now);
+    const theirs = await repo.inbox(elsewhere, { ref, sessionId });
+    expect(theirs.map((m) => m.kind)).toEqual(["report_ready"]);
+    expect(theirs[0]?.openWith).toBeUndefined();
+    expect(JSON.stringify(theirs)).not.toContain(code);
+    // Nothing about the code is written back to the store by reading the inbox.
+    expect(raw()).not.toContain(code);
+  });
 });
 
 describe("deletion", () => {
@@ -205,12 +245,16 @@ describe("deletion", () => {
     expect(stored.audit[0]).toMatchObject({ actor: "customer", action: "answers_deleted", sessionId });
   });
 
-  it("reset removes the visitor's document and the pointers to their codes", async () => {
+  it("reset removes the visitor's document and the pointers to their codes, ready-made ones included", async () => {
     const { codes } = await repo.purchase(ref, "twoPack");
     expect(data.has(pointerKey(codeKey(plain(codes[0]!))))).toBe(true);
+    // One document, two bought codes and three ready-made ones.
+    expect(data.size).toBe(6);
+    const ready = (await repo.inbox(ref)).find((m) => m.kind === "try_codes")!.codes[0]!.code;
     await repo.reset(ref);
     expect(data.size).toBe(0);
     expect(await repo.locate(newSandboxRef(now), codes[0]!)).toBeNull();
+    expect(await repo.locate(newSandboxRef(now), ready)).toBeNull();
   });
 
   it("the daily clean-up removes spaces older than seven days and leaves newer ones", async () => {

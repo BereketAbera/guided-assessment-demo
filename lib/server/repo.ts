@@ -1,5 +1,5 @@
 import "server-only";
-import { checkCodeFormat, codeHint, formatCode, generateCode } from "@/lib/codes";
+import { checkCodeFormat, codeHint, formatCode, generateCode, normalizeCode } from "@/lib/codes";
 import {
   answer as applyAnswer,
   deleteAnswers as applyDelete,
@@ -26,6 +26,7 @@ import { StoreConflict, type DocStore } from "./store";
  * built from the plain half only.
  */
 export const MAX_SESSIONS = 16;
+export const MIN_REASON_CHARS = 4;
 const DAY = 24 * 60 * 60 * 1000;
 
 export type SessionRecord = {
@@ -55,6 +56,8 @@ export type InboxMessage = {
   body: string;
   codes: { code: string; label: string }[];
   sessionId: string | null;
+  /** Report messages only, and never stored: the code that opens the report, when this inbox holds the email it came in. */
+  openWith?: string;
 };
 
 export type SandboxDoc = {
@@ -62,6 +65,8 @@ export type SandboxDoc = {
   ref: string;
   createdAt: number;
   seq: number;
+  /** Example sessions whose codes are shown in the demo inbox, so they can be found from another device too. */
+  sharedSeeds?: string[];
   sessions: SessionRecord[];
   inboxSealed: string;
   audit: AuditEntry[];
@@ -69,7 +74,7 @@ export type SandboxDoc = {
 
 export class RepoError extends Error {
   constructor(
-    public code: "not_found" | "full" | "bad_code" | "busy",
+    public code: "not_found" | "full" | "bad_code" | "busy" | "reason_required",
     message: string,
   ) {
     super(message);
@@ -104,17 +109,21 @@ export class Repo {
     return found ? (JSON.parse(found.body) as SandboxDoc) : null;
   }
 
-  private fresh(ref: string): SandboxDoc {
+  private fresh(ref: string): { doc: SandboxDoc; shared: SessionRecord[] } {
     const now = this.now();
     const seeded = seedSessions(now, this.cfg);
     return {
-      v: 1,
-      ref,
-      createdAt: now,
-      seq: 1038 + seeded.sessions.length,
-      sessions: seeded.sessions,
-      inboxSealed: seal(seeded.inbox),
-      audit: seeded.audit,
+      doc: {
+        v: 1,
+        ref,
+        createdAt: now,
+        seq: 1038 + seeded.sessions.length,
+        sharedSeeds: seeded.shared.map((s) => s.id),
+        sessions: seeded.sessions,
+        inboxSealed: seal(seeded.inbox),
+        audit: seeded.audit,
+      },
+      shared: seeded.shared,
     };
   }
 
@@ -126,14 +135,18 @@ export class Repo {
   async mutate<T>(ref: string, change: (doc: SandboxDoc) => T): Promise<T> {
     for (let attempt = 0; attempt < 5; attempt++) {
       const found = await this.store.get(docKey(ref));
-      const doc = found ? (JSON.parse(found.body) as SandboxDoc) : this.fresh(ref);
+      const made = found ? null : this.fresh(ref);
+      const doc = made ? made.doc : (JSON.parse(found!.body) as SandboxDoc);
       const result = change(doc);
       try {
         await this.store.put(docKey(ref), JSON.stringify(doc), found?.etag);
-        return result;
       } catch (error) {
         if (!(error instanceof StoreConflict)) throw error;
+        continue;
       }
+      // A new space: the ready-made codes shown in its inbox must resume on any device, like a bought code.
+      if (made) await this.writePointers(ref, made.shared);
+      return result;
     }
     throw new RepoError("busy", "The session is busy. Try again in a moment.");
   }
@@ -275,7 +288,7 @@ export class Repo {
   ): Promise<{ outcome: AnswerOutcome; located: Located }> {
     return this.change(ref, sessionId, (record) => {
       const result = applyAnswer(Repo.open(record), questionId, text, this.now(), this.cfg);
-      if (result.outcome !== "duplicate") Repo.close(record, result.state);
+      if (result.outcome === "next" || result.outcome === "finished") Repo.close(record, result.state);
       return { outcome: result.outcome, located: { ref, record, status: statusOf(record.meta, this.now()) } };
     });
   }
@@ -329,9 +342,15 @@ export class Repo {
     });
   }
 
-  /** The only path by which the owner reads answers. The reason is written to the access log first. */
-  openTranscript(ref: string, sessionId: string, reason: string): Promise<PrivatePayload | null> {
-    const cleanReason = reason.replace(/\s+/g, " ").trim().slice(0, 120) || "No reason given";
+  /**
+   * The only path by which the owner reads answers. It refuses without a
+   * reason, and the reason is written to the access log in the same step.
+   */
+  async openTranscript(ref: string, sessionId: string, reason: string): Promise<PrivatePayload | null> {
+    const cleanReason = reason.replace(/\s+/g, " ").trim().slice(0, 120);
+    if (cleanReason.length < MIN_REASON_CHARS) {
+      throw new RepoError("reason_required", "Give a reason before opening a transcript.");
+    }
     return this.change(ref, sessionId, (record, doc) => {
       record.transcriptOpens += 1;
       doc.audit.unshift({
@@ -352,6 +371,7 @@ export class Repo {
     const collect = (doc: SandboxDoc | null, onlySession?: string) => {
       if (!doc) return;
       const stored = unseal<InboxMessage[]>(doc.inboxSealed);
+      const first = messages.length;
       messages.push(...stored.filter((m) => (onlySession ? m.sessionId === onlySession : true)));
       for (const s of doc.sessions) {
         if (s.source === "seed" || (onlySession && s.id !== onlySession)) continue;
@@ -367,6 +387,18 @@ export class Repo {
           });
         }
       }
+      // Only the visitor's own space: a second device was given one code, not the buyer's mailbox.
+      if (onlySession) return;
+      const emailed = new Map<string, string>();
+      for (const m of stored) {
+        if (m.kind === "access_codes") for (const c of m.codes) emailed.set(codeKey(normalizeCode(c.code)), c.code);
+      }
+      for (const m of messages.slice(first)) {
+        if (m.kind !== "report_ready" && m.kind !== "report_copy") continue;
+        const record = doc.sessions.find((s) => s.id === m.sessionId);
+        const code = record ? emailed.get(record.codeKey) : undefined;
+        if (code) m.openWith = code;
+      }
     };
     collect(await this.read(ref));
     if (also && also.ref !== ref) collect(await this.read(also.ref), also.sessionId);
@@ -376,8 +408,9 @@ export class Repo {
   /** Reset demo: removes this visitor's document and the pointers to its codes. */
   async reset(ref: string): Promise<void> {
     const doc = await this.read(ref);
-    const keys = [docKey(ref), ...(doc?.sessions.filter((s) => s.source !== "seed").map((s) => pointerKey(s.codeKey)) ?? [])];
-    await this.store.del(keys);
+    const shared = new Set(doc?.sharedSeeds ?? []);
+    const pointed = doc?.sessions.filter((s) => s.source !== "seed" || shared.has(s.id)) ?? [];
+    await this.store.del([docKey(ref), ...pointed.map((s) => pointerKey(s.codeKey))]);
   }
 
   /** Daily clean-up: sandboxes past their retention, and pointers that outlived them. */

@@ -2,8 +2,9 @@ import { isAdmin, repo, sandboxRef } from "@/lib/server/context";
 import { fail, handle, ok, readJson, text } from "@/lib/server/http";
 
 /**
- * The only route that returns answers to the owner. It writes the access log
- * entry in the same step, so a transcript cannot be read without a record.
+ * The only route that returns answers to the owner. It refuses without a
+ * reason (400), and writes the access log entry in the same step, so a
+ * transcript cannot be read without a record.
  */
 export function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return handle(async () => {

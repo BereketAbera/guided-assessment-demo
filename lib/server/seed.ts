@@ -44,7 +44,7 @@ export function play(
 export function seedSessions(
   now: number,
   cfg: MachineConfig,
-): { sessions: SessionRecord[]; inbox: InboxMessage[]; audit: AuditEntry[] } {
+): { sessions: SessionRecord[]; shared: SessionRecord[]; inbox: InboxMessage[]; audit: AuditEntry[] } {
   let seq = 1038;
   const make = (
     state: SessionState,
@@ -101,13 +101,15 @@ export function seedSessions(
 
   return {
     sessions: [finished.record, underway.record, lapsed.record, removed.record, gift.record],
+    // The three whose codes are shown in the inbox below.
+    shared: [underway.record, lapsed.record, removed.record],
     inbox: [
       {
         id: "try-codes",
         at: now,
         kind: "try_codes",
         subject: "Codes to try in this sample",
-        body: "Three ready-made codes, so you can see what a returning, an expired and a used code look like without waiting.",
+        body: "Three ready-made codes, so you can see what a returning, an expired and a used code look like without waiting. Like a bought code, each works on any device.",
         codes: [
           { code: formatCode(underway.code), label: "Partway through: resumes at part 3" },
           { code: formatCode(lapsed.code), label: "Expired: reopen it in the owner admin" },

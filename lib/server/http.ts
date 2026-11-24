@@ -18,9 +18,20 @@ export async function handle(run: () => Promise<Response>): Promise<Response> {
   try {
     return await run();
   } catch (error) {
-    if (error instanceof SessionError) return fail(error.code, error.message, error.code === "expired" ? 410 : 409);
+    if (error instanceof SessionError) {
+      // Input the server will not accept is a 400; a session in the wrong state is a 409; a lapsed one is gone.
+      const invalid = error.code === "name_required" || error.code === "empty_answer" || error.code === "too_long";
+      return fail(error.code, error.message, error.code === "expired" ? 410 : invalid ? 400 : 409);
+    }
     if (error instanceof RepoError) {
-      const status = error.code === "not_found" ? 404 : error.code === "bad_code" ? 400 : error.code === "full" ? 409 : 503;
+      const status =
+        error.code === "not_found"
+          ? 404
+          : error.code === "bad_code" || error.code === "reason_required"
+            ? 400
+            : error.code === "full"
+              ? 409
+              : 503;
       return fail(error.code, error.message, status);
     }
     console.error(error);

@@ -8,6 +8,9 @@ import { isLiveRef, isSandboxRef, newSandboxRef, RETENTION_DAYS } from "@/lib/sa
 import { settings } from "@/lib/settings";
 import { Repo, type Located } from "./repo";
 import { getStore } from "./store";
+import { decodePointer, isOwnerOf, type SessionPointer } from "./tokens";
+
+export { encodeOwner, encodePointer, OWNER_HOURS, type SessionPointer } from "./tokens";
 
 export const SANDBOX_COOKIE = "ga_sb";
 export const SESSION_COOKIE = "ga_sess";
@@ -67,18 +70,8 @@ export async function sandboxRef(): Promise<string> {
   return fresh;
 }
 
-export type SessionPointer = { ref: string; sessionId: string };
-
-export function encodePointer(pointer: SessionPointer): string {
-  return `${pointer.ref}~${pointer.sessionId}`;
-}
-
 export async function sessionPointer(): Promise<SessionPointer | null> {
-  const value = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!value) return null;
-  const [ref, sessionId] = value.split("~");
-  if (!isSandboxRef(ref) || !sessionId || !/^S-\d{1,8}$/.test(sessionId)) return null;
-  return { ref, sessionId };
+  return decodePointer((await cookies()).get(SESSION_COOKIE)?.value);
 }
 
 /** The session this browser has open, found from its http-only cookie. */
@@ -88,10 +81,10 @@ export async function currentSession(): Promise<Located | null> {
   return repo().get(pointer.ref, pointer.sessionId);
 }
 
+/** True only with the sealed cookie the owner sign-in route sets, for this visitor's own space, before it lapses. */
 export async function isAdmin(): Promise<boolean> {
   const jar = await cookies();
-  const ref = jar.get(SANDBOX_COOKIE)?.value;
-  return isSandboxRef(ref) && jar.get(ADMIN_COOKIE)?.value === ref;
+  return isOwnerOf(jar.get(ADMIN_COOKIE)?.value, jar.get(SANDBOX_COOKIE)?.value, Date.now());
 }
 
 /** Marks this browser as having a sample space, so the demo inbox knows to load. */
