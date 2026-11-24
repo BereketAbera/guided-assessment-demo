@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
+import { HistoryGuard } from "@/components/history-guard";
 import { SampleRibbon } from "@/components/sample-ribbon";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
+        <HistoryGuard />
         <SampleRibbon />
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />

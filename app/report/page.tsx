@@ -20,6 +20,11 @@ export default async function ReportPage() {
   return (
     <FlowShell wide>
       <ReportToolbar />
+      <p className="no-print mx-auto mb-6 w-full max-w-3xl rounded-lg border border-dashed border-line px-3.5 py-2.5 text-[0.8125rem] leading-snug text-stone" data-testid="sample-note">
+        <span className="font-semibold text-ink">Sample.</span> This report is assembled by simple rules from words in
+        your answers, not written by a model, so it may not match what you wrote. In the real build the model writes it
+        from your prompt, into this same layout.
+      </p>
       <ReportView report={report} />
 
       <section aria-labelledby="your-data" className="no-print mx-auto mt-8 w-full max-w-3xl rounded-xl border border-rule bg-sand/70 p-6 sm:p-8">
@@ -29,7 +34,10 @@ export default async function ReportPage() {
         <dl className="mt-4 grid gap-x-8 gap-y-4 text-[0.95rem] sm:grid-cols-3">
           <div>
             <dt className="font-semibold">What is stored</dt>
-            <dd className="mt-1">Your first name, your answers and this report, encrypted. No email, no account.</dd>
+            <dd className="mt-1">
+              In this sample: your first name, your answers and this report, encrypted, and no email. The real product
+              also keeps the email you bought with, to send your code and report.
+            </dd>
           </div>
           <div>
             <dt className="font-semibold">For how long</dt>

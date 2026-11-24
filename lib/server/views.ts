@@ -1,6 +1,7 @@
 import "server-only";
 import { viewJob, type JobView } from "@/lib/assessment/job";
 import { currentTurn, progressOf, type Progress } from "@/lib/assessment/machine";
+import { SAMPLE_ANSWERS, SAMPLE_FOLLOW_UP_ANSWER } from "@/lib/assessment/script";
 import type { Status } from "@/lib/assessment/types";
 import { estimateCost } from "@/lib/assessment/usage";
 import { settings } from "@/lib/settings";
@@ -28,7 +29,14 @@ export type ConversationView = {
   codeHint: string;
   firstName: string;
   progress: Progress;
-  current: { questionId: string; kind: "core" | "followup"; reflection: string | null; question: string } | null;
+  current: {
+    questionId: string;
+    kind: "core" | "followup";
+    reflection: string | null;
+    question: string;
+    /** The invented answer behind "Use an example answer". Sent with the question, so the script itself stays on the server. */
+    example: string;
+  } | null;
   answers: { questionId: string; partIndex: number; question: string; answer: string }[];
   savedAt: number | null;
   resumed: boolean;
@@ -45,7 +53,13 @@ export function conversationView(located: Located): ConversationView {
     firstName: state.priv?.firstName ?? "",
     progress: progressOf(state, machineConfig()),
     current: open
-      ? { questionId: open.questionId, kind: open.kind, reflection: open.reflection, question: open.question }
+      ? {
+          questionId: open.questionId,
+          kind: open.kind,
+          reflection: open.reflection,
+          question: open.question,
+          example: open.kind === "followup" ? SAMPLE_FOLLOW_UP_ANSWER : (SAMPLE_ANSWERS[open.questionId] ?? ""),
+        }
       : null,
     answers: turns
       .filter((t) => t.answer !== null)

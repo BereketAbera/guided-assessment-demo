@@ -1,7 +1,6 @@
 "use client";
 
 import { Download, Mail, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { refreshInbox } from "./demo-inbox";
 import { postJson } from "@/lib/utils";
@@ -23,7 +22,7 @@ export function ReportToolbar() {
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={() => window.print()}>
           <Download aria-hidden className="size-4" />
-          Download PDF
+          Save as PDF
         </Button>
         <Button variant="secondary" onClick={email} disabled={mail === "sending"}>
           <Mail aria-hidden className="size-4" />
@@ -35,14 +34,13 @@ export function ReportToolbar() {
           ? "Sent. In this sample the copy is in the Demo inbox at the top of the page."
           : mail === "failed"
             ? "We couldn't send that just now. Try again in a moment."
-            : "Download PDF opens your print dialog; choose “Save as PDF”. The PDF is this page, in the same layout."}
+            : "Save as PDF opens your print dialog; choose “Save as PDF” as the destination. The PDF is this page, in the same layout."}
       </p>
     </div>
   );
 }
 
 export function DeleteAnswers() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +54,8 @@ export function DeleteAnswers() {
       setError(result.message);
       return;
     }
-    refreshInbox();
-    router.push("/code?deleted=1");
+    // A full page load that replaces this page in the browser's history: the Back button cannot show the report again.
+    window.location.replace("/code?deleted=1");
   }
 
   return (

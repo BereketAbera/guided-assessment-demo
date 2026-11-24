@@ -38,8 +38,13 @@ export default async function PreparingPage() {
           email it when it&apos;s ready, and your access code opens it at any time.
         </p>
         <p className="text-stone">
-          About this sample: the wait here is about 25 seconds. The real report takes one to two minutes, and this
-          screen works the same way for it.
+          About this sample: the wait here is a timer of about 25 seconds. The real report takes one to two minutes,
+          and this screen works the same way for it.
+        </p>
+        <p className="rounded-lg border border-dashed border-line px-3.5 py-2.5 text-[0.8125rem] leading-snug text-stone" data-testid="sample-note">
+          <span className="font-semibold text-ink">Sample.</span> The report you are about to see is assembled by
+          simple rules from words in your answers, not written by a model, so it may not match what you wrote. In the
+          real build your prompt writes it.
         </p>
       </div>
     </FlowShell>
