@@ -3,7 +3,8 @@ import { matchesStem, reflect } from "@/lib/assessment/guide";
 import { SCRIPT, SECOND_VOICE_ANSWERS } from "@/lib/assessment/script";
 import type { Turn } from "@/lib/assessment/types";
 import { addUsage, estimateCost, estimateTokens, exchangeUsage, formatCost } from "@/lib/assessment/usage";
-import { buildReport, firstSentence } from "@/lib/report/build";
+import { dayInZone, longDate, shortDateTime } from "@/lib/format";
+import { buildReport, firstSentence, supportingQuote } from "@/lib/report/build";
 import { sampleReport } from "@/lib/report/sample";
 
 const turn = (questionId: string, answer: string): Turn => ({
@@ -25,10 +26,34 @@ describe("the scripted guide", () => {
     expect(matchesStem("We work out loud", "out loud")).toBe(true);
   });
 
-  it("reflects an answer with the first rule that fits, or a neutral line", () => {
+  it("does not count a word that is negated", () => {
+    expect(matchesStem("I never plan my day", "plan")).toBe(false);
+    expect(matchesStem("I do not keep a list", "list")).toBe(false);
+    expect(matchesStem("I hate lists", "list")).toBe(false);
+    expect(matchesStem("I don’t read the brief", "read")).toBe(false);
+    expect(matchesStem("I am not calm", "calm")).toBe(false);
+    // The "not" stops at the end of its sentence, and at "but".
+    expect(matchesStem("I do not wait. I plan everything.", "plan")).toBe(true);
+    expect(matchesStem("I never rush, but I do make a list", "list")).toBe(true);
+    expect(matchesStem("We settled it there and then", "there and then")).toBe(true);
+  });
+
+  it("reflects an answer with the rule that fits best, or a neutral line", () => {
     const q = SCRIPT.find((s) => s.id === "others-2")!;
     expect(reflect(q, "I usually wait and think about it overnight.")).toMatch(/think before you answer/);
     expect(reflect(q, "It depends on the day.")).toBe(q.fallback);
+  });
+
+  it("does not say the opposite of what was written", () => {
+    const first = SCRIPT.find((s) => s.id === "begin-1")!;
+    const second = SCRIPT.find((s) => s.id === "begin-2")!;
+    const pressure = SCRIPT.find((s) => s.id === "pressure-1")!;
+    expect(reflect(first, "Honestly I never plan anything and I hate lists.")).toBe(first.fallback);
+    expect(reflect(first, "I never plan my day and I do not keep a list of anything.")).toBe(first.fallback);
+    expect(reflect(second, "I do not read the brief. I just start and fix it later.")).toMatch(/by starting/);
+    expect(reflect(pressure, "I am not calm and I do not make lists. I panic for a day, then work through the weekend.")).toMatch(
+      /another gear/,
+    );
   });
 });
 
@@ -67,10 +92,23 @@ describe("the report as labeled sections", () => {
     );
   });
 
-  it("quotes the person's own first sentence in each section", () => {
+  it("quotes the sentence that shows the pattern, in the person's own words", () => {
     expect(report.sections[2]?.quote).toBe("My colleague Dana gives me space.");
+    // Not simply the first sentence of the part: the first one that carries the pattern.
+    expect(report.sections[1]?.quote).toBe("I had a quiet afternoon with the door closed and my phone in a drawer.");
+    expect(report.sections.every((s) => s.quote !== null)).toBe(true);
     expect(firstSentence("One. Two.")).toBe("One.");
     expect(firstSentence(`${"word ".repeat(60)}end`, 40).endsWith("…")).toBe(true);
+  });
+
+  it("never quotes a throwaway answer or a sentence that says the opposite", () => {
+    const stems = ["plan", "list"];
+    expect(supportingQuote(["Coffee.", "I wrote my plan in a notebook before opening my inbox."], stems)).toBe(
+      "I wrote my plan in a notebook before opening my inbox.",
+    );
+    expect(supportingQuote(["Plan."], stems)).toBeNull();
+    expect(supportingQuote(["Honestly I never plan anything and I hate lists."], stems)).toBeNull();
+    expect(supportingQuote([], stems)).toBeNull();
   });
 
   it("reads a different voice differently", () => {
@@ -85,6 +123,59 @@ describe("the report as labeled sections", () => {
     const flat = buildReport({ firstName: "Ines", turns: [turn("begin-1", "It was fine.")], closing: null, report: null }, 0);
     expect(flat.profile.traits.every((t) => t.score === 2)).toBe(true);
     expect(flat.profile.traits[0]?.line).toMatch(/did not lean strongly/);
+    expect(flat.profile.traits[0]?.name).toBe("Begin: no clear lean");
+  });
+
+  it("claims nothing when the answers are throwaway", () => {
+    const turns = SCRIPT.map((q, i) => turn(q.id, i % 2 === 0 ? "test" : "asdf"));
+    const junk = buildReport({ firstName: "Sam", turns, closing: null, report: null }, 0);
+    expect(junk.profile.name).toBe("No Clear Pattern Yet");
+    expect(junk.profile.summary).toMatch(/did not lean strongly in any one direction/);
+    expect(junk.profile.summary).not.toMatch(/came through/);
+    expect(junk.keyStatement).not.toMatch(/You do your best work/);
+    expect(junk.sections.every((s) => s.quote === null)).toBe(true);
+    expect(junk.sections.every((s) => /did not lean clearly/.test(s.paragraphs[0]!))).toBe(true);
+    expect(junk.nextSteps).toHaveLength(1);
+  });
+
+  it("does not print a pattern above a sentence that denies it", () => {
+    const turns = [
+      turn("begin-1", "Honestly I never plan anything and I hate lists. I just get going and see what happens."),
+      turn("begin-2", "I never read the brief first."),
+      turn("pressure-1", "I am not calm and I do not make lists. I panic for a day, then work through the weekend."),
+    ];
+    const own = buildReport({ firstName: "Sam", turns, closing: null, report: null }, 0);
+    const [begin, , , pressure] = own.profile.traits;
+    expect(begin?.name).not.toBe("Deliberate starter");
+    expect(own.sections[0]?.paragraphs[0]).not.toMatch(/You begin by understanding/);
+    expect(own.sections[0]?.quote).toBeNull();
+    expect(pressure?.name).toBe("Sprints to the finish");
+    expect(own.sections[3]?.quote).toBe("I panic for a day, then work through the weekend.");
+    expect(own.profile.name).toBe("The Strong Finisher");
+    expect(own.profile.summary).toMatch(/one pattern came through clearly/);
+    // Steps come only from parts that leaned.
+    expect(own.nextSteps.map((s) => s.title)).toEqual(["Book the recovery with the sprint"]);
+  });
+
+  it("leaves a tied part neutral", () => {
+    const tied = buildReport(
+      { firstName: "Sam", turns: [turn("begin-1", "Sometimes I plan the whole thing, and sometimes I dive in before I know enough.")], closing: null, report: null },
+      0,
+    );
+    expect(tied.profile.traits[0]).toMatchObject({ name: "Begin: no clear lean", score: 2 });
+    expect(tied.sections[0]?.quote).toBeNull();
+  });
+});
+
+describe("dates in the product's time zone", () => {
+  it("puts an evening in the United States on that day, not the next", () => {
+    const evening = Date.UTC(2026, 10, 25, 1, 30); // 8:30 PM on November 24 in New York
+    expect(dayInZone(evening)).toBe("2026-11-24");
+    expect(longDate(evening)).toBe("November 24, 2026");
+    expect(longDate("2026-11-24")).toBe("November 24, 2026");
+    expect(shortDateTime(evening)).toBe("Nov 24, 8:30 PM EST");
+    const done = buildReport({ firstName: "Sam", turns: [], closing: null, report: null }, evening);
+    expect(done.dateISO).toBe("2026-11-24");
   });
 });
 

@@ -8,11 +8,9 @@ import {
   SESSION_COOKIE,
   SESSION_MAX_AGE,
 } from "@/lib/server/context";
+import { longDate } from "@/lib/format";
 import { fail, handle, ok, readJson, text } from "@/lib/server/http";
 import { pathFor } from "@/lib/server/views";
-
-const longDate = (ms: number) =>
-  new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(ms);
 
 /** Code entry. The code is the only thing needed to start, to resume and to reopen the report. */
 export function POST(request: Request) {

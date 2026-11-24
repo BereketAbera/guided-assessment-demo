@@ -5,7 +5,8 @@
     "minutesLow": 45,
     "minutesHigh": 60,
     "timeLimitDays": 14,
-    "reopenDays": 7
+    "reopenDays": 7,
+    "timeZone": "America/New_York"
   },
   "model": {
     "name": "claude-opus-5-5",

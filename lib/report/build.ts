@@ -1,5 +1,6 @@
-import { matchesStem } from "@/lib/assessment/guide";
+import { countStems, countWords, matchesStem } from "@/lib/assessment/guide";
 import type { PrivatePayload } from "@/lib/assessment/types";
+import { dayInZone } from "@/lib/format";
 import type { Report, Trait } from "./types";
 
 /**
@@ -18,7 +19,16 @@ type Pole = {
   step: { title: string; detail: string };
 };
 
-type Axis = { partId: string; partPrefix: string; axis: string; heading: string; a: Pole; b: Pole };
+type Axis = {
+  partId: string;
+  partPrefix: string;
+  axis: string;
+  heading: string;
+  /** Used when the answers for this part point neither way, or both ways equally. */
+  neutral: string;
+  a: Pole;
+  b: Pole;
+};
 
 export const AXES: Axis[] = [
   {
@@ -26,6 +36,8 @@ export const AXES: Axis[] = [
     partPrefix: "begin-",
     axis: "Begin",
     heading: "How you begin",
+    neutral:
+      "Your answers in this part did not lean clearly toward understanding the whole first or toward finding your way by starting. Many people do both, depending on the work. A fuller answer, about one real piece of work, would give this section more to say.",
     a: {
       name: "Deliberate starter",
       profile: "The Deliberate Starter",
@@ -58,6 +70,8 @@ export const AXES: Axis[] = [
     partPrefix: "focus-",
     axis: "Focus",
     heading: "Where your attention goes",
+    neutral:
+      "Your answers in this part did not lean clearly toward long, protected stretches or toward several threads and company. It may depend on the task. A fuller answer, about one real afternoon, would give this section more to say.",
     a: {
       name: "Deep focus",
       profile: "The Deep Worker",
@@ -90,6 +104,8 @@ export const AXES: Axis[] = [
     partPrefix: "others-",
     axis: "Others",
     heading: "Working with others",
+    neutral:
+      "Your answers in this part did not lean clearly toward thinking first or toward thinking out loud. Many people change with the person in front of them. A fuller answer, about one real colleague, would give this section more to say.",
     a: {
       name: "Thinks before speaking",
       profile: "The Quiet Contributor",
@@ -122,6 +138,8 @@ export const AXES: Axis[] = [
     partPrefix: "pressure-",
     axis: "Pressure",
     heading: "Under pressure",
+    neutral:
+      "Your answers in this part did not lean clearly toward steadying the pace or toward a sprint to the finish. A fuller answer, about one real deadline, would give this section more to say.",
     a: {
       name: "Steady under pressure",
       profile: "The Steady Hand",
@@ -154,6 +172,8 @@ export const AXES: Axis[] = [
     partPrefix: "next-",
     axis: "Next",
     heading: "What you want next",
+    neutral:
+      "Your answers in this part did not lean clearly toward doing less, better, or toward something new. That is a fair place to be. A fuller answer, about six months from now, would give this section more to say.",
     a: {
       name: "Refiner",
       profile: "The Refiner",
@@ -189,9 +209,13 @@ const RESOURCES = [
   { title: "A Weekly Review in Fifteen Minutes", kind: "Checklist" },
 ];
 
-function countStems(text: string, stems: string[]): number {
-  return stems.filter((stem) => matchesStem(text, stem)).length;
-}
+const GENERAL_STEP = {
+  title: "Write for ten minutes about one real working day",
+  detail: "Note what you reached for first, what pulled you away and what you would change. Patterns show in the detail.",
+};
+
+/** A quote has to carry something: a few words at least. */
+const MIN_QUOTE_WORDS = 4;
 
 /** The first sentence of an answer, shortened at a word if it runs long. */
 export function firstSentence(text: string, max = 170): string {
@@ -204,52 +228,84 @@ export function firstSentence(text: string, max = 170): string {
   return sentence;
 }
 
+function sentences(text: string): string[] {
+  return (text.replace(/\s+/g, " ").trim().match(/[^.!?]+[.!?]*/g) ?? []).map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * The person's own sentence that shows the pattern: the first one, in the
+ * order they wrote, that contains one of the words the pattern was read from.
+ */
+export function supportingQuote(answers: string[], stems: string[]): string | null {
+  for (const answer of answers) {
+    for (const sentence of sentences(answer)) {
+      if (countWords(sentence) >= MIN_QUOTE_WORDS && stems.some((stem) => matchesStem(sentence, stem))) {
+        return firstSentence(sentence);
+      }
+    }
+  }
+  return null;
+}
+
 export function buildReport(priv: PrivatePayload, now: number): Report {
   const scored = AXES.map((axis, index) => {
-    const answers = priv.turns.filter((t) => t.questionId.startsWith(axis.partPrefix) && t.answer !== null);
-    const text = answers.map((t) => t.answer).join(" ");
+    const answers = priv.turns
+      .filter((t) => t.questionId.startsWith(axis.partPrefix) && t.answer !== null)
+      .map((t) => t.answer!);
+    const text = answers.join(" ");
     const a = countStems(text, axis.a.stems);
     const b = countStems(text, axis.b.stems);
-    const pole = b > a ? axis.b : axis.a;
+    // No words found, or as many one way as the other: the part does not lean, and the report says so.
+    const pole = a === b ? null : b > a ? axis.b : axis.a;
     const hits = Math.max(a, b);
-    const score = hits === 0 ? 2 : hits <= 2 ? 3 : hits <= 4 ? 4 : 5;
-    const first = answers.find((t) => t.kind === "core") ?? answers[0];
-    return { axis, index, pole, score, lean: hits > 0, quote: first?.answer ? firstSentence(first.answer) : null };
+    const score = !pole ? 2 : hits <= 2 ? 3 : hits <= 4 ? 4 : 5;
+    return { axis, index, pole, score, quote: pole ? supportingQuote(answers, pole.stems) : null };
   });
+  type Leaning = (typeof scored)[number] & { pole: Pole };
 
   const traits: Trait[] = scored.map((s) => ({
     partId: s.axis.partId,
     axis: s.axis.axis,
-    name: s.pole.name,
+    name: s.pole ? s.pole.name : `${s.axis.axis}: no clear lean`,
     score: s.score,
-    line: s.lean ? s.pole.line : "Your answers did not lean strongly either way here.",
+    line: s.pole ? s.pole.line : "Your answers did not lean strongly either way here.",
   }));
 
-  const ranked = [...scored].sort((x, y) => y.score - x.score || x.index - y.index);
-  const top = ranked[0]!;
-  const second = ranked[1]!;
-  const next = scored[scored.length - 1]!;
-  const wish = next.pole === next.axis.a ? "less, done better" : "something new to grow into";
+  const leaning = scored.filter((s): s is Leaning => s.pole !== null);
+  const ranked = [...leaning].sort((x, y) => y.score - x.score || x.index - y.index);
+  const [top, second] = ranked;
+  const last = scored[scored.length - 1]!;
+  const next = last.pole ? (last as Leaning) : null;
+  const wish = next ? (next.pole === next.axis.a ? "less, done better" : "something new to grow into") : null;
 
-  const stepSources = [top, second, next].filter((s, i, all) => all.indexOf(s) === i);
-  if (stepSources.length < 3) stepSources.push(ranked.find((s) => !stepSources.includes(s))!);
+  const clauses = [top, second].filter((s) => s !== undefined).map((s) => s.pole.clause);
+  const keyStatement =
+    clauses.length === 0
+      ? "Your answers did not point strongly in one direction, so this report stays general. Fuller answers, in your own words, give it more to say."
+      : `You do your best work when ${clauses.join(", and ")}.${wish ? ` What you are asking for next is ${wish}.` : ""}`;
+
+  const summary = !top
+    ? "Across the five parts your answers did not lean strongly in any one direction. That is common with short answers; the sections below say where a fuller answer would help."
+    : !second
+      ? `Across the five parts, one pattern came through clearly in your own words: ${top.pole.name.toLowerCase()}.`
+      : `Across the five parts, two patterns came through most clearly in your own words: ${top.pole.name.toLowerCase()} and ${second.pole.name.toLowerCase()}.`;
+
+  // Steps come only from parts that leaned: the two clearest, then what the person wants next, then the rest.
+  const stepSources = [top, second, next, ...ranked].filter((s, i, all): s is Leaning => !!s && all.indexOf(s) === i);
+  const nextSteps = stepSources.slice(0, 3).map((s) => s.pole.step);
 
   return {
     title: "Your Working Style Reflection",
     firstName: priv.firstName,
-    dateISO: new Date(now).toISOString().slice(0, 10),
-    keyStatement: `You do your best work when ${top.pole.clause}, and ${second.pole.clause}. What you are asking for next is ${wish}.`,
-    profile: {
-      name: top.pole.profile,
-      summary: `Across the five parts, two patterns came through most clearly in your own words: ${top.pole.name.toLowerCase()} and ${second.pole.name.toLowerCase()}.`,
-      traits,
-    },
+    dateISO: dayInZone(now),
+    keyStatement,
+    profile: { name: top ? top.pole.profile : "No Clear Pattern Yet", summary, traits },
     sections: scored.map((s) => ({
       heading: s.axis.heading,
-      paragraphs: [s.pole.paragraph],
+      paragraphs: [s.pole ? s.pole.paragraph : s.axis.neutral],
       quote: s.quote,
     })),
-    nextSteps: stepSources.slice(0, 3).map((s) => s.pole.step),
+    nextSteps: nextSteps.length > 0 ? nextSteps : [GENERAL_STEP],
     resources: RESOURCES,
     note: "This report is a reflection drawn from your own words. It is not a diagnosis, and it does not measure ability.",
   };
