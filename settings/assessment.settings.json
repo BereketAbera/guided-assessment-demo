@@ -1,0 +1,35 @@
+{
+  "assessment": {
+    "brand": "Slate & Pine",
+    "name": "The Working Style Reflection",
+    "minutesLow": 45,
+    "minutesHigh": 60,
+    "timeLimitDays": 14,
+    "reopenDays": 7
+  },
+  "model": {
+    "name": "claude-opus-5-5",
+    "inputPricePerMillionTokens": 4,
+    "outputPricePerMillionTokens": 20
+  },
+  "promptFile": "guide-prompt.md",
+  "prices": {
+    "currency": "USD",
+    "single": 49,
+    "twoPack": 79
+  },
+  "parts": [
+    { "id": "begin", "title": "How you begin", "minutes": 10 },
+    { "id": "focus", "title": "Where your attention goes", "minutes": 10 },
+    { "id": "others", "title": "Working with others", "minutes": 10 },
+    { "id": "pressure", "title": "Under pressure", "minutes": 10 },
+    { "id": "next", "title": "What you want next", "minutes": 10 }
+  ],
+  "reportJob": {
+    "stages": [
+      { "id": "reading", "label": "Reading your answers", "detail": "All five parts, in the order you gave them.", "seconds": 8 },
+      { "id": "profile", "label": "Drawing your profile", "detail": "Finding the patterns that repeat across your answers.", "seconds": 9 },
+      { "id": "writing", "label": "Writing your report", "detail": "Your key statement first, then each section.", "seconds": 9 }
+    ]
+  }
+}
