@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { SiteHeader } from "./site-header";
 
-/** The quiet frame for the customer's journey: a narrow, centred column and little else. */
+/** The quiet frame for the customer's journey: a narrow, centered column and little else. */
 export function FlowShell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   return (
     <>

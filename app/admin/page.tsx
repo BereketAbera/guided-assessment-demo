@@ -59,7 +59,9 @@ export default async function AdminPage() {
     .sort((a, b) => (b.lastActivityAt ?? b.createdAt) - (a.lastActivityAt ?? a.createdAt));
   const audit = doc?.audit ?? [];
   const spent = rows.reduce((sum, r) => sum + r.cost, 0);
-  const zone = settings.assessment.timeZone.replace(/_/g, " ");
+  // "America/New_York" in the file reads as "New York time" in a sentence.
+  const zoneId = settings.assessment.timeZone;
+  const zoneCity = (zoneId.split("/").pop() ?? zoneId).replace(/_/g, " ");
 
   return (
     <>
@@ -171,7 +173,8 @@ export default async function AdminPage() {
             model response. The rows marked Example are invented and carry the counts of a full-length conversation; a
             session you run here is much shorter. The example counts are before prompt caching, which lowers the input
             cost, and do not include the model&apos;s thinking tokens, which are billed as output. The real figure
-            comes from a test run with your prompt. Times are shown in {zone}, set in the settings file.
+            comes from a test run with your prompt. Times are shown in {zoneCity} time (
+            <span className="font-mono text-[0.8rem]">{zoneId}</span> in the settings file).
           </p>
         </section>
 

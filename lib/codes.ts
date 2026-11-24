@@ -63,7 +63,7 @@ export function generateCode(randomBytes: (n: number) => Uint8Array): string {
   return out;
 }
 
-/** What the owner sees in the admin list: enough to recognise a code, not enough to use it. */
+/** What the owner sees in the admin list: enough to recognize a code, not enough to use it. */
 export function codeHint(code: string): string {
   return `${normalizeCode(code).slice(0, 4)}-••••`;
 }

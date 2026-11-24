@@ -90,6 +90,10 @@ describe("the report as labeled sections", () => {
     expect(report.keyStatement).toBe(
       "You do your best work when you can see the whole before you begin, and you have room to think before you speak. What you are asking for next is less, done better.",
     );
+    // The summary names the two patterns as they are written in the rows below it.
+    expect(report.profile.summary).toBe(
+      "Across the five parts, two patterns came through most clearly in your own words: “Deliberate starter” and “Thinks before speaking.”",
+    );
   });
 
   it("quotes the sentence that shows the pattern, in the person's own words", () => {
@@ -152,7 +156,7 @@ describe("the report as labeled sections", () => {
     expect(pressure?.name).toBe("Sprints to the finish");
     expect(own.sections[3]?.quote).toBe("I panic for a day, then work through the weekend.");
     expect(own.profile.name).toBe("The Strong Finisher");
-    expect(own.profile.summary).toMatch(/one pattern came through clearly/);
+    expect(own.profile.summary).toMatch(/one pattern came through clearly in your own words: “Sprints to the finish.”$/);
     // Steps come only from parts that leaned.
     expect(own.nextSteps.map((s) => s.title)).toEqual(["Book the recovery with the sprint"]);
   });

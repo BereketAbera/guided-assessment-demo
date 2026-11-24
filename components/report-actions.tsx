@@ -69,7 +69,7 @@ export function DeleteAnswers() {
         onOpenChange={setOpen}
         variant="dialog"
         title="Delete your answers and report?"
-        description="Your first name, every answer and this report are removed from our records now. This can't be undone, and the code can't be used again. Download the PDF first if you want to keep it."
+        description="Your first name, every answer and this report are removed from our records now. This can't be undone, and the code can't be used again. Save it as a PDF first if you want to keep it."
       >
         {error ? (
           <p role="alert" className="mb-4 rounded-lg border border-clay bg-white p-3 text-sm">

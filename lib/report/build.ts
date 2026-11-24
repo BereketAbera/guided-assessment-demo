@@ -116,7 +116,7 @@ export const AXES: Axis[] = [
         "With other people you think first and speak second. You do well with colleagues who agree on the goal, give you room and then compare notes. In a disagreement you take the question away and come back with something considered, though sometimes after the moment has passed.",
       step: {
         title: "Name a time to come back",
-        detail: "When you take a disagreement away, say when you will return to it. \"Let me think and come back tomorrow\" keeps the moment open.",
+        detail: "When you take a disagreement away, say when you will return to it. “Let me think and come back tomorrow” keeps the moment open.",
       },
     },
     b: {
@@ -181,7 +181,7 @@ export const AXES: Axis[] = [
       line: "Wants fewer things, done properly.",
       clause: "you are making something good a little better",
       paragraph:
-        "What you want next is not more, it is better. You are asking for fewer commitments and more room to do them properly. That is a change made mostly by saying no, which is a skill, and one you can practice in small ways.",
+        "What you want next is better work, not more of it. You are asking for fewer commitments and more room to do them properly. That is a change made mostly by saying no, which is a skill, and one you can practice in small ways.",
       step: {
         title: "Practice one small no",
         detail: "This week, decline or defer one request, and give the reason plainly. Notice what the time makes room for.",
@@ -287,8 +287,8 @@ export function buildReport(priv: PrivatePayload, now: number): Report {
   const summary = !top
     ? "Across the five parts your answers did not lean strongly in any one direction. That is common with short answers; the sections below say where a fuller answer would help."
     : !second
-      ? `Across the five parts, one pattern came through clearly in your own words: ${top.pole.name.toLowerCase()}.`
-      : `Across the five parts, two patterns came through most clearly in your own words: ${top.pole.name.toLowerCase()} and ${second.pole.name.toLowerCase()}.`;
+      ? `Across the five parts, one pattern came through clearly in your own words: “${top.pole.name}.”`
+      : `Across the five parts, two patterns came through most clearly in your own words: “${top.pole.name}” and “${second.pole.name}.”`;
 
   // Steps come only from parts that leaned: the two clearest, then what the person wants next, then the rest.
   const stepSources = [top, second, next, ...ranked].filter((s, i, all): s is Leaning => !!s && all.indexOf(s) === i);
