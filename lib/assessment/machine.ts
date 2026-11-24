@@ -51,8 +51,17 @@ export function currentTurn(state: SessionState): Turn | null {
   return last && last.answer === null ? last : null;
 }
 
+/**
+ * A first name as typed, without what a name never needs: control characters
+ * and the invisible marks that reorder text on screen.
+ */
 export function cleanName(input: string): string {
-  return input.replace(/\s+/g, " ").trim().slice(0, MAX_NAME_CHARS);
+  return input
+    .normalize("NFC")
+    .replace(/\s+/g, " ")
+    .replace(/[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/gu, "")
+    .trim()
+    .slice(0, MAX_NAME_CHARS);
 }
 
 /** Start: the first name is stored, the clock for the time limit begins, and the first question is asked. */
@@ -83,12 +92,15 @@ export function start(state: SessionState, firstName: string, now: number, cfg: 
   };
 }
 
-export type AnswerOutcome = "next" | "finished" | "duplicate";
+export type AnswerOutcome = "next" | "finished" | "duplicate" | "superseded";
 
 /**
  * Records one answer. The answer is editable until this is called and fixed
  * afterwards. Sending the same question twice (a retry after a dropped
- * connection, a double tap) changes nothing and reports "duplicate".
+ * connection, a double tap) changes nothing and reports "duplicate". A
+ * different answer to a question already answered, from a stale tab or a
+ * second device, changes nothing either and reports "superseded", so the
+ * screen can say that text was not saved.
  */
 export function answer(
   state: SessionState,
@@ -104,8 +116,8 @@ export function answer(
   const priv = state.priv;
   if (!priv) throw new SessionError("deleted", "The answers for this code were deleted.");
 
-  const alreadyAnswered = priv.turns.some((t) => t.questionId === questionId && t.answer !== null);
-  if (alreadyAnswered) return { state, outcome: "duplicate" };
+  const stored = priv.turns.find((t) => t.questionId === questionId && t.answer !== null);
+  if (stored) return { state, outcome: stored.answer === text.trim() ? "duplicate" : "superseded" };
   if (status !== "in_progress") throw new SessionError("not_in_progress", "This assessment is already complete.");
 
   const open = currentTurn(state);

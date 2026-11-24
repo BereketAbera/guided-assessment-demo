@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { jobDurationMs } from "@/lib/assessment/job";
 import {
   answer,
+  cleanName,
   currentTurn,
   deleteAnswers,
   MAX_ANSWER_CHARS,
@@ -42,6 +43,14 @@ describe("starting", () => {
     expect(s.meta.expiresAt).toBe(T0 + 14 * DAY);
   });
 
+  it("keeps a first name as typed, without control characters or marks that reorder text", () => {
+    expect(cleanName("  Renée   O'Neil-Smith ")).toBe("Renée O'Neil-Smith");
+    expect(cleanName("\u202Eevil\u0000 Zoë\u200F")).toBe("evil Zoë");
+    expect(cleanName("Ana\tMaria\n")).toBe("Ana Maria");
+    expect(cleanName("\u0000\u202E")).toBe("");
+    expect(() => start(fresh(), "\u0000\u202E", T0, cfg)).toThrow(/first name/);
+  });
+
   it("cannot be started twice", () => {
     expect(() => start(started(), "Maren", T0, cfg)).toThrow(/already been started/);
   });
@@ -71,10 +80,18 @@ describe("answering", () => {
     expect(currentTurn(s)?.answer).toBeNull();
     const sent = answer(s, "begin-1", `  ${LONG}  `, T0 + MINUTE, cfg).state;
     expect(sent.priv?.turns[0]?.answer).toBe(LONG);
-    // A second send for the same question (retry, double tap) changes nothing.
-    const again = answer(sent, "begin-1", "Something different entirely, sent a second time by mistake.", T0 + 2 * MINUTE, cfg);
+    // A second send of the same answer (retry, double tap) changes nothing.
+    const again = answer(sent, "begin-1", LONG, T0 + 2 * MINUTE, cfg);
     expect(again.outcome).toBe("duplicate");
     expect(again.state).toBe(sent);
+  });
+
+  it("keeps the first answer when a stale tab sends different words, and says those were not saved", () => {
+    const sent = answer(started(), "begin-1", LONG, T0 + MINUTE, cfg).state;
+    const late = answer(sent, "begin-1", "Something different entirely, typed on another device.", T0 + 2 * MINUTE, cfg);
+    expect(late.outcome).toBe("superseded");
+    expect(late.state).toBe(sent);
+    expect(late.state.priv?.turns[0]?.answer).toBe(LONG);
   });
 
   it("rejects an empty answer, an over-long answer and an answer to the wrong question", () => {
