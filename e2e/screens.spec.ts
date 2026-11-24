@@ -6,8 +6,9 @@ import { answer, answerToTheEnd, begin, buyCodes, enterCode, question, signInAsO
  * Takes the screenshots used alongside the demo. Run against a deployment with
  * BASE_URL set; files go to SCREENS_DIR. One code is used on a phone and on a
  * desktop browser, so the desktop shots show the session the phone started.
- * The question and the waiting screen are the first screen of a phone, not the
- * whole page, so the picture is what the customer sees without scrolling.
+ * The question is the first screen of a phone, not the whole page, so the picture
+ * is what the customer sees without scrolling. The waiting screen runs a little
+ * further, to the end of "You can close this page".
  */
 const out = process.env.SCREENS_DIR ?? path.join(process.cwd(), "test-results", "screens");
 const shot = (name: string) => path.join(out, `guided-assessment-${name}.png`);
@@ -23,6 +24,9 @@ test("screenshots", async ({ browser }) => {
   });
   const d = await desktop.newPage();
   const p = await phone.newPage();
+  // The phone's clock reads 4:21 PM, so the "Saved" time in the question picture is the same on every retake.
+  const today = new Date();
+  await p.clock.setFixedTime(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 16, 21));
 
   await d.goto("/");
   await d.evaluate(() => document.fonts.ready);
@@ -55,7 +59,15 @@ test("screenshots", async ({ browser }) => {
   await answerToTheEnd(p);
   await expect(p.getByRole("heading", { name: "Preparing your results" })).toBeVisible();
   await expect(p.locator('li[data-state="done"]').first()).toBeVisible({ timeout: 20_000 });
+  // The waiting screen is a little longer than a phone's first screen. The picture runs from the top of the page
+  // to just under "You can close this page", so the status box and that line are whole and the edge falls between paragraphs.
+  const closeLine = p.getByText("You can close this page.").locator("xpath=..");
+  const closeBox = (await closeLine.boundingBox())!;
+  const waitHeight = Math.ceil(closeBox.y + closeBox.height + 6);
+  await p.setViewportSize({ width: 390, height: waitHeight });
+  await p.evaluate(() => window.scrollTo(0, 0));
   await p.screenshot({ animations: "disabled", path: shot("preparing-phone") });
+  await p.setViewportSize({ width: 390, height: 844 });
 
   await expect(p).toHaveURL(/\/report$/, { timeout: 60_000 });
   await expect(p.getByRole("heading", { name: "Your Working Style Reflection" })).toBeVisible();
