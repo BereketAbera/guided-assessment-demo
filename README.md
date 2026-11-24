@@ -58,7 +58,9 @@ and uses a fixed development key, so nothing leaves the machine and a restart cl
   closed tab or another device all see the same stage. In production a worker would write the stage to a
   database; the page would read it the same way.
 - **Where it is stored.** On Vercel: a private Blob store in the same account, read with the cache bypassed so
-  a write is visible to the next read (`scripts/blob-check.mjs` checks this). Locally and in tests: memory.
+  a write is visible to the next read (`scripts/blob-check.mjs` checks this, and `scripts/stored-check.mjs`
+  confirms that nothing stored is readable as plain text or without the server token). Locally and in tests:
+  memory.
   The real product would use Postgres with the same split.
 - **Retention.** A daily cron (`/api/cron/purge`, protected by `CRON_SECRET`) removes each visitor's document
   seven days after the day it was created.
