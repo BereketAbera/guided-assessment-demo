@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { answer, answerToTheEnd, begin, buyCodes, enterCode, question, signInAsOwner } from "./helpers";
+import { answer, answerToTheEnd, begin, buyCodes, enterCode, question, readyMadeCode, signInAsOwner } from "./helpers";
 
 /**
  * Runs against a deployment (BASE_URL). Two separate browser contexts stand in
@@ -13,6 +13,21 @@ test("live: resume on another device, a job that outlives the page, deletion, an
   const b = await laptop.newPage();
 
   const [code] = await buyCodes(a);
+
+  await test.step("the ready-made \"Partway through\" code resumes on a device that never saw it", async () => {
+    const partway = await readyMadeCode(a, /Partway through/);
+    await enterCode(b, partway);
+    await expect(b).toHaveURL(/\/session$/);
+    await expect(b.getByTestId("progress-text")).toContainText("Part 3 of 5");
+    await expect(b.getByTestId("welcome-back")).toContainText("Welcome back, Tobias. Your 4 answers are saved.");
+    await b.getByRole("button", { name: "Take a break" }).click();
+    await b.getByRole("button", { name: "Leave for now" }).click();
+    await expect(b).toHaveURL(/\/code\?left=1$/);
+    // Back does not bring the conversation back from the browser's memory.
+    await b.goBack();
+    await expect(b.locator("#question")).toHaveCount(0);
+  });
+
   await enterCode(a, code!);
   await begin(a, "Noor");
   await answer(a);
@@ -62,11 +77,25 @@ test("live: resume on another device, a job that outlives the page, deletion, an
     for (const word of ["notebook", "Dana", "Noor"]) expect(html).not.toContain(word);
   });
 
+  await test.step("the second device, holding only the code, cannot act as the owner", async () => {
+    const sealed = (await laptop.cookies()).find((c) => c.name === "ga_sess")!.value;
+    const buyerRef = (await phone.cookies()).find((c) => c.name === "ga_sb")!.value;
+    expect(sealed).not.toContain(buyerRef);
+    expect((await b.request.post("/api/admin/codes", { data: { note: "x" } })).status()).toBe(401);
+    expect((await b.request.post("/api/admin/sessions/S-1043/transcript", { data: { reason: "curious" } })).status()).toBe(401);
+    // The owner's own request without a reason is refused too.
+    expect((await again.request.post("/api/admin/sessions/S-1043/transcript", { data: {} })).status()).toBe(400);
+  });
+
   await test.step("delete my answers removes them for every device", async () => {
     await again.goto("/report");
     await again.getByRole("button", { name: "Delete my answers" }).click();
     await again.getByRole("button", { name: "Delete everything" }).click();
     await expect(again).toHaveURL(/\/code\?deleted=1$/);
+    // Back does not show the deleted report again.
+    await again.goBack();
+    await expect(again.getByText("Prepared for")).toHaveCount(0);
+    await expect(again.getByText("Your key statement")).toHaveCount(0);
     await b.reload();
     await expect(b).toHaveURL(/\/code$/);
     await enterCode(b, code!);

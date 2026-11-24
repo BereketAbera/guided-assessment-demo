@@ -30,7 +30,7 @@ export function question(page: Page) {
 /** Answers the question on screen and waits for the next one (or for the waiting screen). */
 export async function answer(page: Page, text?: string): Promise<void> {
   const before = await question(page).textContent();
-  if (text === undefined) await page.getByRole("button", { name: /Sample shortcut/ }).click();
+  if (text === undefined) await page.getByRole("button", { name: /Use an example answer/ }).click();
   else await page.getByLabel("Your answer").fill(text);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect
@@ -61,6 +61,24 @@ export async function expectAccessible(page: Page): Promise<void> {
     results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`),
     `accessibility violations on ${page.url()}`,
   ).toEqual([]);
+}
+
+/** Nothing on the page may be wider than the screen: a phone must never have to pan sideways. */
+export async function expectNoSidewaysScroll(page: Page): Promise<void> {
+  const size = await page.evaluate(() => ({
+    content: document.documentElement.scrollWidth,
+    screen: document.documentElement.clientWidth,
+  }));
+  expect(size.content, `sideways scroll on ${page.url()}`).toBeLessThanOrEqual(size.screen);
+}
+
+/** Reads one of the ready-made codes from the demo inbox. */
+export async function readyMadeCode(page: Page, label: RegExp): Promise<string> {
+  await page.getByRole("button", { name: /Demo inbox/ }).click();
+  const row = page.getByRole("dialog").getByTestId("inbox-code-row").filter({ hasText: label });
+  const code = (await row.getByTestId("inbox-code").textContent())!.trim();
+  await page.getByRole("button", { name: "Close" }).click();
+  return code;
 }
 
 export async function signInAsOwner(page: Page): Promise<void> {
